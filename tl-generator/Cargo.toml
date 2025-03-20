@@ -1,0 +1,12 @@
+[package]
+name = "tl-generator"
+version = "0.1.0"
+edition = "2024"
+description = "TL code generator"
+license = "MIT"
+repository = "https://github.com/lifr0m/tl"
+
+[dependencies]
+tl-parser = { path = "../tl-parser" }
+convert_case = "0"
+aws-lc-rs = "1"

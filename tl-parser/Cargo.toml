@@ -1,0 +1,10 @@
+[package]
+name = "tl-parser"
+version = "0.1.0"
+edition = "2024"
+description = "TL schema parser"
+license = "MIT"
+repository = "https://github.com/lifr0m/tl"
+
+[dependencies]
+thiserror = "2"
