@@ -12,9 +12,11 @@ Like Telegram's one but simpler and (sometimes) more efficient.
 ### Example schema
 
 ```text
+# Supports comments
 type Message id:int32 text:string? photos:[bytes] sent_at:time
 type User id:int64 verified:bool rating:float
 
+# Some functions
 func get_users [User] user_ids:[int64]
 func send_message Message user_id:int64 text:string? photos:[bytes]
 ```
