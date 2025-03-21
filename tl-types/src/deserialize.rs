@@ -84,11 +84,7 @@ impl Deserialize for SystemTime {
 impl<T: Deserialize> Deserialize for Vec<T> {
     fn deserialize(cur: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let len = deserialize_dyn_len(cur)?;
-        let mut vec = Vec::with_capacity(len);
-        for _ in 0..len {
-            vec.push(T::deserialize(cur)?);
-        }
-        Ok(vec)
+        (0..len).map(|_| T::deserialize(cur)).collect()
     }
 }
 
@@ -105,6 +101,7 @@ impl<T: Deserialize> Deserialize for Option<T> {
 fn deserialize_dyn_len(cur: &mut Cursor<Vec<u8>>) -> Result<usize, Error> {
     let mut buf = [0; 1];
     cur.read_exact(&mut buf)?;
+
     if buf[0] < 255 {
         Ok(buf[0] as usize)
     } else {
