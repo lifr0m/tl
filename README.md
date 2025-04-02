@@ -1,13 +1,11 @@
 # Type Language
 
-Like Telegram's one but simpler and (sometimes) more efficient.
+Like Telegram's one but simpler.
 
 ### Key differences
 
 1. Doesn't support enums (types), only types (constructors).
 2. Doesn't support bit flags.
-3. Identifier is 2 bytes, not 4.
-4. No "layers" or "versions". To identify concrete schema, it's hash is computed.
 
 ### Example schema
 
@@ -25,8 +23,6 @@ func send_message Message user_id:int64 text:string? photos:[bytes]
 <summary>Generated code</summary>
 
 ```rust
-pub const HASH: [u8; 32] = [151, 22, 79, 72, 22, 118, 199, 99, 141, 245, 173, 244, 172, 11, 113, 77, 222, 224, 254, 251, 81, 165, 69, 231, 12, 162, 161, 237, 94, 152, 55, 116];
-
 pub mod types {
     pub struct Message {
         pub id: i32,
@@ -36,7 +32,7 @@ pub mod types {
     }
 
     impl crate::Identify for Message {
-        const ID: u16 = 0;
+        const ID: crate::Id = crate::Id([191, 174, 130, 13]);
     }
 
     impl crate::serialize::Serialize for Message {
@@ -61,6 +57,8 @@ pub mod types {
         }
     }
 
+    impl crate::Definition for Message {}
+
     pub struct User {
         pub id: i64,
         pub verified: bool,
@@ -68,7 +66,7 @@ pub mod types {
     }
 
     impl crate::Identify for User {
-        const ID: u16 = 1;
+        const ID: crate::Id = crate::Id([22, 37, 132, 46]);
     }
 
     impl crate::serialize::Serialize for User {
@@ -91,6 +89,8 @@ pub mod types {
         }
     }
 
+    impl crate::Definition for User {}
+
 }
 
 pub mod functions {
@@ -99,11 +99,7 @@ pub mod functions {
     }
 
     impl crate::Identify for GetUsers {
-        const ID: u16 = 2;
-    }
-
-    impl crate::Function for GetUsers {
-        type Return = Vec::<super::types::User>;
+        const ID: crate::Id = crate::Id([159, 52, 221, 250]);
     }
 
     impl crate::serialize::Serialize for GetUsers {
@@ -122,6 +118,12 @@ pub mod functions {
         }
     }
 
+    impl crate::Definition for GetUsers {}
+
+    impl crate::Function for GetUsers {
+        type Return = Vec::<super::types::User>;
+    }
+
     pub struct SendMessage {
         pub user_id: i64,
         pub text: Option::<String>,
@@ -129,11 +131,7 @@ pub mod functions {
     }
 
     impl crate::Identify for SendMessage {
-        const ID: u16 = 3;
-    }
-
-    impl crate::Function for SendMessage {
-        type Return = super::types::Message;
+        const ID: crate::Id = crate::Id([48, 212, 40, 86]);
     }
 
     impl crate::serialize::Serialize for SendMessage {
@@ -154,6 +152,12 @@ pub mod functions {
             let photos = Vec::<Vec::<u8>>::deserialize(cur)?;
             Ok(Self { user_id, text, photos, })
         }
+    }
+
+    impl crate::Definition for SendMessage {}
+
+    impl crate::Function for SendMessage {
+        type Return = super::types::Message;
     }
 
 }

@@ -1,6 +1,5 @@
 mod output;
 mod generate;
-mod hash;
 
 use generate::Generate;
 use output::Output;

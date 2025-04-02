@@ -89,6 +89,12 @@ impl<T: Serialize> Serialize for Option<T> {
     }
 }
 
+impl Serialize for crate::Id {
+    fn serialize(&self, buf: &mut Vec<u8>) {
+        buf.extend(self.0);
+    }
+}
+
 fn serialize_dyn_len(len: usize, buf: &mut Vec<u8>) {
     if len < 255 {
         buf.push(len as u8);
@@ -117,6 +123,7 @@ mod tests {
         );
         assert_eq!(ser(Some(0x28)), vec![0x1, 0x28, 0x0, 0x0, 0x0]);
         assert_eq!(ser(None::<i32>), vec![0x0]);
+        assert_eq!(ser(crate::Id([0x1, 0x2, 0x3, 0x4])), vec![0x1, 0x2, 0x3, 0x4]);
     }
 
     #[test]

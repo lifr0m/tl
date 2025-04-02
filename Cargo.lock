@@ -380,6 +380,7 @@ dependencies = [
 name = "tl-parser"
 version = "0.1.0"
 dependencies = [
+ "aws-lc-rs",
  "thiserror",
 ]
 

@@ -1,15 +1,13 @@
 mod schema;
 mod serialize;
 mod deserialize;
+mod identify;
+mod function;
+mod definition;
 
+use definition::Definition;
 use deserialize::Deserialize;
+use function::Function;
+use identify::{Id, Identify};
 pub use schema::*;
 use serialize::Serialize;
-
-trait Identify {
-    const ID: u16;
-}
-
-trait Function {
-    type Return: Serialize + Deserialize;
-}

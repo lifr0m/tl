@@ -1,3 +1,4 @@
+use aws_lc_rs::digest;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,14 +39,14 @@ pub struct Schema {
 
 #[derive(Debug, Clone)]
 pub struct TypeDefinition {
-    pub id: u16,
+    pub id: [u8; 4],
     pub name: String,
     pub fields: Vec<Field>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FunctionDefinition {
-    pub id: u16,
+    pub id: [u8; 4],
     pub name: String,
     pub args: Vec<Field>,
     pub typ: Type,
@@ -91,10 +92,9 @@ fn parse_definitions<'a>(
     let mut types = Vec::new();
     let mut functions = Vec::new();
 
-    let mut id = 0;
-
     for (idx, def) in schema {
         let line = idx + 1;
+        let id = compute_id(def);
         let mut def = def.split(" ");
 
         match def.next() {
@@ -104,15 +104,20 @@ fn parse_definitions<'a>(
             Some(typ) => return Err(ParseError::InvalidDefinitionType { line, desc: typ.to_string() }),
             None => return Err(ParseError::DefinitionTypeMissing { line }),
         };
-
-        id = id.checked_add(1).unwrap();
     }
 
     Ok((types, functions))
 }
 
+fn compute_id(def: &str) -> [u8; 4] {
+    let digest = digest::digest(&digest::SHA3_256, def.as_bytes());
+    let mut id = [0; 4];
+    id.clone_from_slice(&digest.as_ref()[..4]);
+    id
+}
+
 fn parse_type_definition<'a>(
-    id: u16,
+    id: [u8; 4],
     line: usize,
     mut def: impl Iterator<Item = &'a str>,
     definitions: &[TypeDefinition],
@@ -130,7 +135,7 @@ fn parse_type_definition<'a>(
 }
 
 fn parse_function_definition<'a>(
-    id: u16,
+    id: [u8; 4],
     line: usize,
     mut def: impl Iterator<Item = &'a str>,
     type_definitions: &[TypeDefinition],
@@ -246,4 +251,15 @@ fn function_defined(name: &str, definitions: &[FunctionDefinition]) -> bool {
 fn field_defined(name: &str, fields: &[Field]) -> bool {
     fields.iter()
         .any(|f| f.name == name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn id() {
+        let def = "type Message id:int32 text:string? photos:[bytes] sent_at:time";
+        assert_eq!(compute_id(def), [0xbf, 0xae, 0x82, 0x0d]);
+    }
 }

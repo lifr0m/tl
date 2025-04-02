@@ -1,8 +1,6 @@
 use crate::output::Output;
 use convert_case::{Case, Casing};
 use tl_parser::*;
-use aws_lc_rs::digest;
-use crate::hash::Hash;
 
 pub(crate) trait Generate {
     fn generate(&self, output: &mut Output);
@@ -10,19 +8,6 @@ pub(crate) trait Generate {
 
 impl Generate for Schema {
     fn generate(&self, output: &mut Output) {
-        output.write_line(|o| {
-            o.write("pub const HASH: [u8; ");
-            o.write(&digest::SHA256_OUTPUT_LEN.to_string());
-            o.write("] = ");
-            let mut cx = digest::Context::new(&digest::SHA256);
-            self.hash(&mut cx);
-            let digest = cx.finish();
-            o.write(&format!("{:?}", digest.as_ref()));
-            o.write(";");
-        });
-
-        output.write("\n");
-
         output.write_line(|o| o.write("pub mod types {"));
         output.with_indent(|o| {
             for def in &self.types {
@@ -87,7 +72,7 @@ impl Generate for Type {
 
 fn generate_definition(
     output: &mut Output,
-    id: u16,
+    id: [u8; 4],
     mut name: String,
     fields: &Vec<Field>,
     typ: Option<&Type>,
@@ -123,32 +108,14 @@ fn generate_definition(
     });
     output.with_indent(|o| {
         o.write_line(|o| {
-            o.write("const ID: u16 = ");
-            o.write(&id.to_string());
-            o.write(";");
+            o.write("const ID: crate::Id = crate::Id(");
+            o.write(&format!("{id:?}"));
+            o.write(");");
         });
     });
     output.write_line(|o| o.write("}"));
 
     output.write("\n");
-
-    if let Some(typ) = typ {
-        output.write_line(|o| {
-            o.write("impl crate::Function for ");
-            o.write(&name);
-            o.write(" {");
-        });
-        output.with_indent(|o| {
-            o.write_line(|o| {
-                o.write("type Return = ");
-                typ.generate(o);
-                o.write(";");
-            });
-        });
-        output.write_line(|o| o.write("}"));
-
-        output.write("\n");
-    }
 
     output.write_line(|o| {
         o.write("impl crate::serialize::Serialize for ");
@@ -172,9 +139,9 @@ fn generate_definition(
         o.write_line(|o| o.write("}"));
     });
     output.write_line(|o| o.write("}"));
-    
+
     output.write("\n");
-    
+
     output.write_line(|o| {
         o.write("impl crate::deserialize::Deserialize for ");
         o.write(&name);
@@ -204,4 +171,30 @@ fn generate_definition(
         o.write_line(|o| o.write("}"));
     });
     output.write_line(|o| o.write("}"));
+
+    output.write("\n");
+
+    output.write_line(|o| {
+        o.write("impl crate::Definition for ");
+        o.write(&name);
+        o.write(" {}");
+    });
+
+    if let Some(typ) = typ {
+        output.write("\n");
+
+        output.write_line(|o| {
+            o.write("impl crate::Function for ");
+            o.write(&name);
+            o.write(" {");
+        });
+        output.with_indent(|o| {
+            o.write_line(|o| {
+                o.write("type Return = ");
+                typ.generate(o);
+                o.write(";");
+            });
+        });
+        output.write_line(|o| o.write("}"));
+    }
 }
