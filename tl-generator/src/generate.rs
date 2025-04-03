@@ -60,7 +60,7 @@ impl Generate for ErrorDefinition {
 
 impl Generate for FunctionDefinition {
     fn generate(&self, output: &mut Output) {
-        generate_definition(output, self.id, self.name.clone(), &self.fields, Some(&self.ret));
+        generate_definition(output, self.id, self.name.clone(), &self.fields, Some(&self.r#return));
     }
 }
 
@@ -210,9 +210,9 @@ fn generate_definition(
     id: u32,
     mut name: String,
     fields: &[Field],
-    ret: Option<&Type>,
+    r#return: Option<&Type>,
 ) {
-    if ret.is_some() {
+    if r#return.is_some() {
         name = name.to_case(Case::Pascal);
     }
 
@@ -306,7 +306,7 @@ fn generate_definition(
     });
     output.write_line(|o| o.write("}"));
 
-    if let Some(ret) = ret {
+    if let Some(r#return) = r#return {
         output.write("\n");
 
         output.write_line(|o| {
@@ -317,7 +317,7 @@ fn generate_definition(
         output.with_indent(|o| {
             o.write_line(|o| {
                 o.write("type Return = ");
-                ret.generate(o);
+                r#return.generate(o);
                 o.write(";");
             });
         });

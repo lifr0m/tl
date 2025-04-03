@@ -58,7 +58,7 @@ pub struct FunctionDefinition {
     pub id: u32,
     pub name: String,
     pub fields: Vec<Field>,
-    pub ret: Type,
+    pub r#return: Type,
 }
 
 pub struct Field {
@@ -185,11 +185,11 @@ fn parse_function_definition<'a>(
 
     let fields = parse_fields(line, &mut def, type_definitions)?;
 
-    let ret = def.next()
+    let r#return = def.next()
         .ok_or(ParseError::FunctionTypeMissing { line })?;
-    let ret = parse_type(line, "<return>", ret, type_definitions, None)?;
+    let r#return = parse_type(line, "<return>", r#return, type_definitions, None)?;
 
-    Ok(FunctionDefinition { id, name, fields, ret })
+    Ok(FunctionDefinition { id, name, fields, r#return })
 }
 
 fn parse_fields<'a>(
