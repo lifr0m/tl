@@ -80,7 +80,7 @@ impl Generate for Type {
                 output.write(">");
             }
             Self::Defined(defined) => {
-                output.write("super::types::");
+                output.write("crate::types::");
                 output.write(defined);
             }
         };
@@ -89,7 +89,7 @@ impl Generate for Type {
 
 fn generate_definition(
     output: &mut Output,
-    id: [u8; 4],
+    id: u32,
     mut name: String,
     fields: &Vec<Field>,
     typ: Option<&Type>,
@@ -125,8 +125,8 @@ fn generate_definition(
     });
     output.with_indent(|o| {
         o.write_line(|o| {
-            o.write("const ID: [u8; 4] = ");
-            o.write(&format!("{id:?}"));
+            o.write("const ID: u32 = ");
+            o.write(&id.to_string());
             o.write(";");
         });
     });

@@ -1,4 +1,5 @@
 use aws_lc_rs::digest;
+use std::io::Read;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,19 +39,19 @@ pub struct Schema {
 }
 
 pub struct TypeDefinition {
-    pub id: [u8; 4],
+    pub id: u32,
     pub name: String,
     pub fields: Vec<Field>,
 }
 
 pub struct ErrorDefinition {
-    pub id: [u8; 4],
+    pub id: u32,
     pub name: String,
     pub fields: Vec<Field>,
 }
 
 pub struct FunctionDefinition {
-    pub id: [u8; 4],
+    pub id: u32,
     pub name: String,
     pub args: Vec<Field>,
     pub typ: Type,
@@ -114,15 +115,15 @@ fn parse_definitions<'a>(
     Ok((types, errors, functions))
 }
 
-fn compute_definition_id(def: &str) -> [u8; 4] {
+fn compute_definition_id(def: &str) -> u32 {
     let digest = digest::digest(&digest::SHA3_256, def.as_bytes());
-    let mut id = [0; 4];
-    id.clone_from_slice(&digest.as_ref()[..4]);
-    id
+    let mut buf = [0; 4];
+    digest.as_ref().read_exact(&mut buf).unwrap();
+    u32::from_le_bytes(buf)
 }
 
 fn parse_type_definition<'a>(
-    id: [u8; 4],
+    id: u32,
     line: usize,
     mut def: impl Iterator<Item = &'a str>,
     type_definitions: &[TypeDefinition],
@@ -141,7 +142,7 @@ fn parse_type_definition<'a>(
 }
 
 fn parse_error_definition<'a>(
-    id: [u8; 4],
+    id: u32,
     line: usize,
     mut def: impl Iterator<Item = &'a str>,
     type_definitions: &[TypeDefinition],
@@ -153,7 +154,7 @@ fn parse_error_definition<'a>(
     if error_defined(&name, error_definitions) {
         return Err(ParseError::DuplicateDefinition { line, desc: name });
     }
-    
+
     let fields = parse_fields(line, &mut def, type_definitions)?;
     assert_eq!(def.next(), None);
 
@@ -161,7 +162,7 @@ fn parse_error_definition<'a>(
 }
 
 fn parse_function_definition<'a>(
-    id: [u8; 4],
+    id: u32,
     line: usize,
     mut def: impl Iterator<Item = &'a str>,
     type_definitions: &[TypeDefinition],
@@ -194,7 +195,7 @@ fn parse_fields<'a>(
         if part == "=" {
             break;
         }
-        
+
         let mut part = part.split(":");
 
         let name = part.next()
@@ -295,6 +296,6 @@ mod tests {
     #[test]
     fn definition_id() {
         let def = "type Message id:int32 text:string? photos:[bytes] sent_at:time";
-        assert_eq!(compute_definition_id(def), [0xbf, 0xae, 0x82, 0x0d]);
+        assert_eq!(compute_definition_id(def), 226668223);
     }
 }

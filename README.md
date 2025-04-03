@@ -34,7 +34,7 @@ pub mod types {
     }
 
     impl crate::Identify for Message {
-        const ID: [u8; 4] = [191, 174, 130, 13];
+        const ID: u32 = 226668223;
     }
 
     impl crate::Serialize for Message {
@@ -64,7 +64,7 @@ pub mod types {
     }
 
     impl crate::Identify for User {
-        const ID: [u8; 4] = [22, 37, 132, 46];
+        const ID: u32 = 780412182;
     }
 
     impl crate::Serialize for User {
@@ -93,7 +93,7 @@ pub mod errors {
     }
 
     impl crate::Identify for InvalidUserId {
-        const ID: [u8; 4] = [233, 100, 138, 97];
+        const ID: u32 = 1636459753;
     }
 
     impl crate::Serialize for InvalidUserId {
@@ -116,7 +116,7 @@ pub mod errors {
     }
 
     impl crate::Identify for TooLongText {
-        const ID: [u8; 4] = [148, 237, 118, 77];
+        const ID: u32 = 1299639700;
     }
 
     impl crate::Serialize for TooLongText {
@@ -143,7 +143,7 @@ pub mod functions {
     }
 
     impl crate::Identify for GetUsers {
-        const ID: [u8; 4] = [35, 165, 131, 113];
+        const ID: u32 = 1904452899;
     }
 
     impl crate::Serialize for GetUsers {
@@ -161,7 +161,7 @@ pub mod functions {
     }
 
     impl crate::Function for GetUsers {
-        type Return = Vec::<super::types::User>;
+        type Return = Vec::<crate::types::User>;
     }
 
     pub struct SendMessage {
@@ -171,7 +171,7 @@ pub mod functions {
     }
 
     impl crate::Identify for SendMessage {
-        const ID: [u8; 4] = [216, 141, 53, 20];
+        const ID: u32 = 339054040;
     }
 
     impl crate::Serialize for SendMessage {
@@ -193,7 +193,7 @@ pub mod functions {
     }
 
     impl crate::Function for SendMessage {
-        type Return = super::types::Message;
+        type Return = crate::types::Message;
     }
 
 }
