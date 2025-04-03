@@ -108,6 +108,7 @@ fn generate_enums(
     
     output.with_indent(|o| {
         for (name, definitions) in collect_enums(type_definitions) {
+            o.write_line(|o| o.write("#[derive(Debug)]"));
             o.write_line(|o| {
                 o.write("pub enum ");
                 o.write(&name);
@@ -215,6 +216,7 @@ fn generate_definition(
         name = name.to_case(Case::Pascal);
     }
 
+    output.write_line(|o| o.write("#[derive(Debug)]"));
     output.write_line(|o| {
         o.write("pub struct ");
         o.write(&name);

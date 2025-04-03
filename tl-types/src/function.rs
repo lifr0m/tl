@@ -1,5 +1,5 @@
 use crate::{Deserialize, Serialize};
 
-pub(crate) trait Function {
+pub trait Function {
     type Return: Serialize + Deserialize;
 }

@@ -297,16 +297,28 @@ pub mod functions {
 2. Create `schema.tl` file at the root of `tl-types` crate.
 3. Specify `tl-types` crate in dependencies of your project.
 
-Usage in code is simple:
+Example usage:
 
-```text
-tl_types::types::User
-tl_types::types::UserEmpty
-tl_types::types::Message
-tl_types::enums::User
-tl_types::enums::Message
-tl_types::errors::InvalidUserId
-tl_types::errors::TooLongText
-tl_types::functions::GetUsers
-tl_types::functions::SendMessage
+```rust
+use std::io::Cursor;
+use tl::{Deserialize, DeserializeError, Function, Serialize};
+
+async fn call<F: Serialize + Function>(func: F) -> Result<F::Return, DeserializeError> {
+    let mut request = Vec::new();
+    func.serialize(&mut request);
+    // send request here
+
+    let response = Vec::new(); // receive response here
+    let mut cur = Cursor::new(response);
+    F::Return::deserialize(&mut cur)
+}
+
+#[tokio::main]
+async fn main() {
+    let users = call(tl::functions::GetUsers {
+        user_ids: vec![1, 2],
+    }).await.unwrap();
+
+    println!("{users:#?}");
+}
 ```

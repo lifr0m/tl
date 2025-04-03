@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub(crate) enum Error {
+pub enum Error {
     #[error("io error: {0}")]
     Io(#[from] io::Error),
 
@@ -14,7 +14,7 @@ pub(crate) enum Error {
     UnexpectedDefinitionId(u32),
 }
 
-pub(crate) trait Deserialize
+pub trait Deserialize
 where
     Self: Sized,
 {

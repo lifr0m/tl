@@ -4,8 +4,8 @@ mod deserialize;
 mod identify;
 mod function;
 
-use deserialize::Deserialize;
-use function::Function;
+pub use deserialize::{Deserialize, Error as DeserializeError};
+pub use function::Function;
 use identify::Identify;
 pub use schema::*;
-use serialize::Serialize;
+pub use serialize::Serialize;

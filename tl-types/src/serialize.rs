@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub(crate) trait Serialize {
+pub trait Serialize {
     fn serialize(&self, buf: &mut Vec<u8>);
 }
 
