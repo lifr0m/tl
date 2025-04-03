@@ -98,14 +98,6 @@ impl<T: Deserialize> Deserialize for Option<T> {
     }
 }
 
-impl Deserialize for crate::Id {
-    fn deserialize(cur: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
-        let mut buf = [0; 4];
-        cur.read_exact(&mut buf)?;
-        Ok(Self(buf))
-    }
-}
-
 fn deserialize_dyn_len(cur: &mut Cursor<Vec<u8>>) -> Result<usize, Error> {
     let mut buf = [0; 1];
     cur.read_exact(&mut buf)?;
@@ -137,7 +129,6 @@ mod tests {
         );
         assert_eq!(de::<Option<i32>>(vec![0x1, 0x28, 0x0, 0x0, 0x0]), Some(0x28));
         assert_eq!(de::<Option<i32>>(vec![0x0]), None::<i32>);
-        assert_eq!(de::<crate::Id>(vec![0x1, 0x2, 0x3, 0x4]), crate::Id([0x1, 0x2, 0x3, 0x4]));
     }
 
     #[test]

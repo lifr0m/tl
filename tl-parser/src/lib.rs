@@ -230,7 +230,7 @@ fn parse_type(
             return Err(ParseError::InvalidType {
                 line,
                 field: field.to_string(),
-                desc: format!("nonsense nested type: {:?}<{:?}>", outer, typ),
+                desc: format!("invalid nested type: {:?}<{:?}>", outer, typ),
             });
         }
     }

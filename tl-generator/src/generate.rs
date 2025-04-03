@@ -108,9 +108,9 @@ fn generate_definition(
     });
     output.with_indent(|o| {
         o.write_line(|o| {
-            o.write("const ID: crate::Id = crate::Id(");
+            o.write("const ID: [u8; 4] = ");
             o.write(&format!("{id:?}"));
-            o.write(");");
+            o.write(";");
         });
     });
     output.write_line(|o| o.write("}"));
@@ -118,16 +118,13 @@ fn generate_definition(
     output.write("\n");
 
     output.write_line(|o| {
-        o.write("impl crate::serialize::Serialize for ");
+        o.write("impl crate::Serialize for ");
         o.write(&name);
         o.write(" {");
     });
     output.with_indent(|o| {
         o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
         o.with_indent(|o| {
-            o.write_line(|o| o.write("use crate::Identify;"));
-            o.write("\n");
-            o.write_line(|o| o.write("Self::ID.serialize(buf);"));
             for f in fields {
                 o.write_line(|o| {
                     o.write("self.");
@@ -143,7 +140,7 @@ fn generate_definition(
     output.write("\n");
 
     output.write_line(|o| {
-        o.write("impl crate::deserialize::Deserialize for ");
+        o.write("impl crate::Deserialize for ");
         o.write(&name);
         o.write(" {");
     });
@@ -159,6 +156,7 @@ fn generate_definition(
                     o.write("::deserialize(cur)?;");
                 });
             }
+            o.write("\n");
             o.write_line(|o| {
                 o.write("Ok(Self { ");
                 for f in fields {
@@ -171,14 +169,6 @@ fn generate_definition(
         o.write_line(|o| o.write("}"));
     });
     output.write_line(|o| o.write("}"));
-
-    output.write("\n");
-
-    output.write_line(|o| {
-        o.write("impl crate::Definition for ");
-        o.write(&name);
-        o.write(" {}");
-    });
 
     if let Some(typ) = typ {
         output.write("\n");

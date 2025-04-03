@@ -32,7 +32,7 @@ pub mod types {
     }
 
     impl crate::Identify for Message {
-        const ID: crate::Id = crate::Id([191, 174, 130, 13]);
+        const ID: [u8; 4] = [191, 174, 130, 13];
     }
 
     impl crate::serialize::Serialize for Message {
@@ -57,8 +57,6 @@ pub mod types {
         }
     }
 
-    impl crate::Definition for Message {}
-
     pub struct User {
         pub id: i64,
         pub verified: bool,
@@ -66,7 +64,7 @@ pub mod types {
     }
 
     impl crate::Identify for User {
-        const ID: crate::Id = crate::Id([22, 37, 132, 46]);
+        const ID: [u8; 4] = [22, 37, 132, 46];
     }
 
     impl crate::serialize::Serialize for User {
@@ -89,8 +87,6 @@ pub mod types {
         }
     }
 
-    impl crate::Definition for User {}
-
 }
 
 pub mod functions {
@@ -99,7 +95,7 @@ pub mod functions {
     }
 
     impl crate::Identify for GetUsers {
-        const ID: crate::Id = crate::Id([159, 52, 221, 250]);
+        const ID: [u8; 4] = [159, 52, 221, 250];
     }
 
     impl crate::serialize::Serialize for GetUsers {
@@ -118,8 +114,6 @@ pub mod functions {
         }
     }
 
-    impl crate::Definition for GetUsers {}
-
     impl crate::Function for GetUsers {
         type Return = Vec::<super::types::User>;
     }
@@ -131,7 +125,7 @@ pub mod functions {
     }
 
     impl crate::Identify for SendMessage {
-        const ID: crate::Id = crate::Id([48, 212, 40, 86]);
+        const ID: [u8; 4] = [48, 212, 40, 86];
     }
 
     impl crate::serialize::Serialize for SendMessage {
@@ -153,8 +147,6 @@ pub mod functions {
             Ok(Self { user_id, text, photos, })
         }
     }
-
-    impl crate::Definition for SendMessage {}
 
     impl crate::Function for SendMessage {
         type Return = super::types::Message;
