@@ -144,7 +144,7 @@ fn generate_enums(
                             o.write_line(|o| {
                                 o.write("Self::");
                                 o.write(&def.name);
-                                o.write("(v) => {");
+                                o.write("(x) => {");
                             });
                             o.with_indent(|o| {
                                 o.write_line(|o| {
@@ -152,7 +152,7 @@ fn generate_enums(
                                     o.write(&def.name);
                                     o.write("::ID.serialize(buf);");
                                 });
-                                o.write_line(|o| o.write("v.serialize(buf);"));
+                                o.write_line(|o| o.write("x.serialize(buf);"));
                             });
                             o.write_line(|o| o.write("}"));
                         }
