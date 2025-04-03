@@ -110,7 +110,7 @@ fn parse_definitions<'a>(
         match def.next() {
             Some("" | "#") => continue,
             Some("type") => types.push(parse_type_definition(id, line, def, &types)?),
-            Some("err") => errors.push(parse_error_definition(id, line, def, &types, &errors)?),
+            Some("error") => errors.push(parse_error_definition(id, line, def, &types, &errors)?),
             Some("func") => functions.push(parse_function_definition(id, line, def, &types, &functions)?),
             Some(r#type) => return Err(ParseError::InvalidDefinitionType { line, desc: r#type.to_string() }),
             None => return Err(ParseError::DefinitionTypeMissing { line }),
