@@ -7,8 +7,11 @@ pub(crate) enum Error {
     #[error("io error: {0}")]
     Io(#[from] io::Error),
 
-    #[error("string decode error: {0}")]
-    StringDecode(#[from] std::string::FromUtf8Error),
+    #[error("invalid string: {0}")]
+    InvalidString(#[from] std::string::FromUtf8Error),
+
+    #[error("unexpected definition id: {0}")]
+    UnexpectedDefinitionId(u32),
 }
 
 pub(crate) trait Deserialize
@@ -18,15 +21,15 @@ where
     fn deserialize(cur: &mut Cursor<Vec<u8>>) -> Result<Self, Error>;
 }
 
-impl Deserialize for u16 {
+impl Deserialize for i32 {
     fn deserialize(cur: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
-        let mut buf = [0; 2];
+        let mut buf = [0; 4];
         cur.read_exact(&mut buf)?;
         Ok(Self::from_le_bytes(buf))
     }
 }
 
-impl Deserialize for i32 {
+impl Deserialize for u32 {
     fn deserialize(cur: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let mut buf = [0; 4];
         cur.read_exact(&mut buf)?;
@@ -115,8 +118,8 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn primitives() {
-        assert_eq!(de::<u16>(vec![0x89, 0xab]), 43913_u16);
         assert_eq!(de::<i32>(vec![0x4e, 0x19, 0x8f, 0x1c]), 479140174_i32);
         assert_eq!(de::<i64>(vec![0x4d, 0xbe, 0x90, 0x9, 0xa2, 0xc6, 0x35, 0x1]), 87194167051075149_i64);
         assert_eq!(de::<f64>(vec![0xbc, 0x90, 0x0e, 0x0f, 0x61, 0x3a, 0x81, 0x40]), 551.297392_f64);

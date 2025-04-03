@@ -4,13 +4,13 @@ pub(crate) trait Serialize {
     fn serialize(&self, buf: &mut Vec<u8>);
 }
 
-impl Serialize for u16 {
+impl Serialize for i32 {
     fn serialize(&self, buf: &mut Vec<u8>) {
         buf.extend(self.to_le_bytes());
     }
 }
 
-impl Serialize for i32 {
+impl Serialize for u32 {
     fn serialize(&self, buf: &mut Vec<u8>) {
         buf.extend(self.to_le_bytes());
     }
@@ -104,7 +104,6 @@ mod tests {
 
     #[test]
     fn primitives() {
-        assert_eq!(ser(43913_u16), vec![0x89, 0xab]);
         assert_eq!(ser(479140174_i32), vec![0x4e, 0x19, 0x8f, 0x1c]);
         assert_eq!(ser(87194167051075149_i64), vec![0x4d, 0xbe, 0x90, 0x9, 0xa2, 0xc6, 0x35, 0x1]);
         assert_eq!(ser(551.297392_f64), vec![0xbc, 0x90, 0x0e, 0x0f, 0x61, 0x3a, 0x81, 0x40]);

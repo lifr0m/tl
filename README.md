@@ -4,15 +4,15 @@ Like Telegram's one but simpler.
 
 ### Key differences
 
-1. Doesn't support enums (types), only types (constructors).
-2. Doesn't support bit flags.
-3. Supports errors.
+1. Doesn't support bit flags yet.
+2. Supports errors.
 
 ### Example schema
 
 ```text
-type Message id:int32 text:string? photos:[bytes] sent_at:time
-type User id:int64 verified:bool rating:float
+type Message id:int32 text:string? photos:[bytes] sent_at:time = Message
+type User id:int64 verified:bool rating:float = User
+type UserEmpty id:int64 = User
 
 err InvalidUserId id:int64
 err TooLongText text:string max_length:int64
@@ -34,7 +34,7 @@ pub mod types {
     }
 
     impl crate::Identify for Message {
-        const ID: u32 = 226668223;
+        const ID: u32 = 2225622240;
     }
 
     impl crate::Serialize for Message {
@@ -64,7 +64,7 @@ pub mod types {
     }
 
     impl crate::Identify for User {
-        const ID: u32 = 780412182;
+        const ID: u32 = 4055296785;
     }
 
     impl crate::Serialize for User {
@@ -82,6 +82,97 @@ pub mod types {
             let rating = f64::deserialize(cur)?;
 
             Ok(Self { id, verified, rating, })
+        }
+    }
+
+    pub struct UserEmpty {
+        pub id: i64,
+    }
+
+    impl crate::Identify for UserEmpty {
+        const ID: u32 = 990500211;
+    }
+
+    impl crate::Serialize for UserEmpty {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            self.id.serialize(buf);
+        }
+    }
+
+    impl crate::Deserialize for UserEmpty {
+        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+            let id = i64::deserialize(cur)?;
+
+            Ok(Self { id, })
+        }
+    }
+
+}
+
+pub mod enums {
+    pub enum User {
+        User(crate::types::User),
+        UserEmpty(crate::types::UserEmpty),
+    }
+
+    impl crate::Serialize for User {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            use crate::Identify;
+
+            match self {
+                Self::User(v) => {
+                    crate::types::User::ID.serialize(buf);
+                    v.serialize(buf);
+                }
+                Self::UserEmpty(v) => {
+                    crate::types::UserEmpty::ID.serialize(buf);
+                    v.serialize(buf);
+                }
+            };
+        }
+    }
+
+    impl crate::Deserialize for User {
+        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+            use crate::Identify;
+
+            let id = u32::deserialize(cur)?;
+
+            Ok(match id {
+                crate::types::User::ID => Self::User(crate::types::User::deserialize(cur)?),
+                crate::types::UserEmpty::ID => Self::UserEmpty(crate::types::UserEmpty::deserialize(cur)?),
+                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
+            })
+        }
+    }
+
+    pub enum Message {
+        Message(crate::types::Message),
+    }
+
+    impl crate::Serialize for Message {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            use crate::Identify;
+
+            match self {
+                Self::Message(v) => {
+                    crate::types::Message::ID.serialize(buf);
+                    v.serialize(buf);
+                }
+            };
+        }
+    }
+
+    impl crate::Deserialize for Message {
+        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+            use crate::Identify;
+
+            let id = u32::deserialize(cur)?;
+
+            Ok(match id {
+                crate::types::Message::ID => Self::Message(crate::types::Message::deserialize(cur)?),
+                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
+            })
         }
     }
 
@@ -161,7 +252,7 @@ pub mod functions {
     }
 
     impl crate::Function for GetUsers {
-        type Return = Vec::<crate::types::User>;
+        type Return = Vec::<crate::enums::User>;
     }
 
     pub struct SendMessage {
@@ -193,7 +284,7 @@ pub mod functions {
     }
 
     impl crate::Function for SendMessage {
-        type Return = crate::types::Message;
+        type Return = crate::enums::Message;
     }
 
 }
@@ -210,7 +301,10 @@ Usage in code is simple:
 
 ```text
 tl_types::types::User
+tl_types::types::UserEmpty
 tl_types::types::Message
+tl_types::enums::User
+tl_types::enums::Message
 tl_types::errors::InvalidUserId
 tl_types::errors::TooLongText
 tl_types::functions::GetUsers

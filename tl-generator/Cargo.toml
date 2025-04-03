@@ -9,4 +9,3 @@ repository = "https://github.com/lifr0m/tl"
 [dependencies]
 tl-parser = { path = "../tl-parser" }
 convert_case = "0"
-aws-lc-rs = "1"

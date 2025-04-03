@@ -1,5 +1,6 @@
 use crate::output::Output;
 use convert_case::{Case, Casing};
+use std::collections::HashMap;
 use tl_parser::*;
 
 pub(crate) trait Generate {
@@ -16,6 +17,10 @@ impl Generate for Schema {
             }
         });
         output.write_line(|o| o.write("}"));
+
+        output.write("\n");
+
+        generate_enums(output, &self.types);
 
         output.write("\n");
 
@@ -55,7 +60,7 @@ impl Generate for ErrorDefinition {
 
 impl Generate for FunctionDefinition {
     fn generate(&self, output: &mut Output) {
-        generate_definition(output, self.id, self.name.clone(), &self.args, Some(&self.typ));
+        generate_definition(output, self.id, self.name.clone(), &self.fields, Some(&self.ret));
     }
 }
 
@@ -80,21 +85,133 @@ impl Generate for Type {
                 output.write(">");
             }
             Self::Defined(defined) => {
-                output.write("crate::types::");
+                output.write("crate::enums::");
                 output.write(defined);
             }
         };
     }
 }
 
+fn collect_enums(type_definitions: &[TypeDefinition]) -> HashMap<String, Vec<&TypeDefinition>> {
+    let mut enums = HashMap::new();
+    for def in type_definitions {
+        enums.entry(def.r#enum.clone()).or_insert_with(Vec::new).push(def);
+    }
+    enums
+}
+
+fn generate_enums(
+    output: &mut Output,
+    type_definitions: &[TypeDefinition],
+) {
+    output.write_line(|o| o.write("pub mod enums {"));
+    
+    output.with_indent(|o| {
+        for (name, definitions) in collect_enums(type_definitions) {
+            o.write_line(|o| {
+                o.write("pub enum ");
+                o.write(&name);
+                o.write(" {");
+            });
+            o.with_indent(|o| {
+                for &def in &definitions {
+                    o.write_line(|o| {
+                        o.write(&def.name);
+                        o.write("(crate::types::");
+                        o.write(&def.name);
+                        o.write("),");
+                    });
+                }
+            });
+            o.write_line(|o| o.write("}"));
+            
+            o.write("\n");
+            
+            o.write_line(|o| {
+                o.write("impl crate::Serialize for ");
+                o.write(&name);
+                o.write(" {");
+            });
+            o.with_indent(|o| {
+                o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
+                o.with_indent(|o| {
+                    o.write_line(|o| o.write("use crate::Identify;"));
+                    o.write("\n");
+                    o.write_line(|o| o.write("match self {"));
+                    o.with_indent(|o| {
+                        for &def in &definitions {
+                            o.write_line(|o| {
+                                o.write("Self::");
+                                o.write(&def.name);
+                                o.write("(v) => {");
+                            });
+                            o.with_indent(|o| {
+                                o.write_line(|o| {
+                                    o.write("crate::types::");
+                                    o.write(&def.name);
+                                    o.write("::ID.serialize(buf);");
+                                });
+                                o.write_line(|o| o.write("v.serialize(buf);"));
+                            });
+                            o.write_line(|o| o.write("}"));
+                        }
+                    });
+                    o.write_line(|o| o.write("};"));
+                });
+                o.write_line(|o| o.write("}"));
+            });
+            o.write_line(|o| o.write("}"));
+            
+            o.write("\n");
+            
+            o.write_line(|o| {
+                o.write("impl crate::Deserialize for ");
+                o.write(&name);
+                o.write(" {");
+            });
+            o.with_indent(|o| {
+                o.write_line(|o| o.write("fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {"));
+                o.with_indent(|o| {
+                    o.write_line(|o| o.write("use crate::Identify;"));
+                    o.write("\n");
+                    o.write_line(|o| o.write("let id = u32::deserialize(cur)?;"));
+                    o.write("\n");
+                    o.write_line(|o| o.write("Ok(match id {"));
+                    o.with_indent(|o| {
+                        for &def in &definitions {
+                            o.write_line(|o| {
+                                o.write("crate::types::");
+                                o.write(&def.name);
+                                o.write("::ID => Self::");
+                                o.write(&def.name);
+                                o.write("(crate::types::");
+                                o.write(&def.name);
+                                o.write("::deserialize(cur)?),");
+                            });
+                        }
+                        o.write_line(|o| o.write("_ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),"));
+                    });
+                    o.write_line(|o| o.write("})"));
+                });
+                o.write_line(|o| o.write("}"));
+            });
+            o.write_line(|o| o.write("}"));
+            
+            o.write("\n");
+        }
+    });
+    
+    output.write_line(|o| o.write("}"));
+}
+
 fn generate_definition(
     output: &mut Output,
     id: u32,
     mut name: String,
-    fields: &Vec<Field>,
-    typ: Option<&Type>,
+    fields: &[Field],
+    ret: Option<&Type>,
 ) {
-    if typ.is_some() {
+    if ret.is_some() {
         name = name.to_case(Case::Pascal);
     }
 
@@ -109,7 +226,7 @@ fn generate_definition(
                 o.write("pub ");
                 o.write(&f.name);
                 o.write(": ");
-                f.typ.generate(o);
+                f.r#type.generate(o);
                 o.write(",");
             });
         }
@@ -169,7 +286,7 @@ fn generate_definition(
                     o.write("let ");
                     o.write(&f.name);
                     o.write(" = ");
-                    f.typ.generate(o);
+                    f.r#type.generate(o);
                     o.write("::deserialize(cur)?;");
                 });
             }
@@ -187,7 +304,7 @@ fn generate_definition(
     });
     output.write_line(|o| o.write("}"));
 
-    if let Some(typ) = typ {
+    if let Some(ret) = ret {
         output.write("\n");
 
         output.write_line(|o| {
@@ -198,7 +315,7 @@ fn generate_definition(
         output.with_indent(|o| {
             o.write_line(|o| {
                 o.write("type Return = ");
-                typ.generate(o);
+                ret.generate(o);
                 o.write(";");
             });
         });

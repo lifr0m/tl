@@ -390,7 +390,6 @@ dependencies = [
 name = "tl-generator"
 version = "0.1.0"
 dependencies = [
- "aws-lc-rs",
  "convert_case",
  "tl-parser",
 ]
