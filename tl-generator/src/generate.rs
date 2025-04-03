@@ -19,6 +19,17 @@ impl Generate for Schema {
 
         output.write("\n");
 
+        output.write_line(|o| o.write("pub mod errors {"));
+        output.with_indent(|o| {
+            for def in &self.errors {
+                def.generate(o);
+                o.write("\n");
+            }
+        });
+        output.write_line(|o| o.write("}"));
+
+        output.write("\n");
+
         output.write_line(|o| o.write("pub mod functions {"));
         output.with_indent(|o| {
             for def in &self.functions {
@@ -31,6 +42,12 @@ impl Generate for Schema {
 }
 
 impl Generate for TypeDefinition {
+    fn generate(&self, output: &mut Output) {
+        generate_definition(output, self.id, self.name.clone(), &self.fields, None);
+    }
+}
+
+impl Generate for ErrorDefinition {
     fn generate(&self, output: &mut Output) {
         generate_definition(output, self.id, self.name.clone(), &self.fields, None);
     }

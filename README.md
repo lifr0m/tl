@@ -6,17 +6,19 @@ Like Telegram's one but simpler.
 
 1. Doesn't support enums (types), only types (constructors).
 2. Doesn't support bit flags.
+3. Supports errors.
 
 ### Example schema
 
 ```text
-# Supports comments
 type Message id:int32 text:string? photos:[bytes] sent_at:time
 type User id:int64 verified:bool rating:float
 
-# Some functions
-func get_users [User] user_ids:[int64]
-func send_message Message user_id:int64 text:string? photos:[bytes]
+err InvalidUserId id:int64
+err TooLongText text:string max_length:int64
+
+func get_users user_ids:[int64] = [User]
+func send_message user_id:int64 text:string? photos:[bytes] = Message
 ```
 
 <details>
@@ -85,13 +87,63 @@ pub mod types {
 
 }
 
+pub mod errors {
+    pub struct InvalidUserId {
+        pub id: i64,
+    }
+
+    impl crate::Identify for InvalidUserId {
+        const ID: [u8; 4] = [233, 100, 138, 97];
+    }
+
+    impl crate::Serialize for InvalidUserId {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            self.id.serialize(buf);
+        }
+    }
+
+    impl crate::Deserialize for InvalidUserId {
+        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+            let id = i64::deserialize(cur)?;
+
+            Ok(Self { id, })
+        }
+    }
+
+    pub struct TooLongText {
+        pub text: String,
+        pub max_length: i64,
+    }
+
+    impl crate::Identify for TooLongText {
+        const ID: [u8; 4] = [148, 237, 118, 77];
+    }
+
+    impl crate::Serialize for TooLongText {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            self.text.serialize(buf);
+            self.max_length.serialize(buf);
+        }
+    }
+
+    impl crate::Deserialize for TooLongText {
+        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+            let text = String::deserialize(cur)?;
+            let max_length = i64::deserialize(cur)?;
+
+            Ok(Self { text, max_length, })
+        }
+    }
+
+}
+
 pub mod functions {
     pub struct GetUsers {
         pub user_ids: Vec::<i64>,
     }
 
     impl crate::Identify for GetUsers {
-        const ID: [u8; 4] = [159, 52, 221, 250];
+        const ID: [u8; 4] = [35, 165, 131, 113];
     }
 
     impl crate::Serialize for GetUsers {
@@ -119,7 +171,7 @@ pub mod functions {
     }
 
     impl crate::Identify for SendMessage {
-        const ID: [u8; 4] = [48, 212, 40, 86];
+        const ID: [u8; 4] = [216, 141, 53, 20];
     }
 
     impl crate::Serialize for SendMessage {
@@ -159,6 +211,8 @@ Usage in code is simple:
 ```text
 tl_types::types::User
 tl_types::types::Message
+tl_types::errors::InvalidUserId
+tl_types::errors::TooLongText
 tl_types::functions::GetUsers
 tl_types::functions::SendMessage
 ```
