@@ -123,7 +123,7 @@ fn parse_definitions<'a>(
 fn compute_definition_id(def: &str) -> u32 {
     let digest = digest::digest(&digest::SHA3_256, def.as_bytes());
     let mut buf = [0; 4];
-    digest.as_ref().read_exact(&mut buf).unwrap();
+    buf.clone_from_slice(&digest.as_ref()[..4]);
     u32::from_le_bytes(buf)
 }
 
