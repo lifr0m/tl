@@ -2,6 +2,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub trait Serialize {
     fn serialize(&self, buf: &mut Vec<u8>);
+
+    fn serialize_to(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        self.serialize(&mut buf);
+        buf
+    }
 }
 
 impl Serialize for u8 {
@@ -92,6 +98,21 @@ impl<T: Serialize> Serialize for Option<T> {
         } else {
             false.serialize(buf);
         }
+    }
+}
+
+impl<T: Serialize> Serialize for Result<T, crate::Error> {
+    fn serialize(&self, buf: &mut Vec<u8>) {
+        match self {
+            Ok(value) => {
+                true.serialize(buf);
+                value.serialize(buf);
+            }
+            Err(error) => {
+                false.serialize(buf);
+                error.serialize(buf);
+            },
+        };
     }
 }
 

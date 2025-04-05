@@ -19,6 +19,11 @@ where
     Self: Sized,
 {
     fn deserialize(reader: &mut Reader) -> Result<Self, Error>;
+
+    fn deserialize_from(buf: &[u8]) -> Result<Self, Error> {
+        let mut reader = Reader::new(buf);
+        Self::deserialize(&mut reader)
+    }
 }
 
 impl Deserialize for u8 {
@@ -92,6 +97,22 @@ impl<T: Deserialize> Deserialize for Option<T> {
             Ok(Some(T::deserialize(reader)?))
         } else {
             Ok(None)
+        }
+    }
+}
+
+impl<T: Deserialize> Deserialize for Result<T, crate::Error> {
+    fn deserialize(reader: &mut Reader) -> Result<Self, Error> {
+        if bool::deserialize(reader)? {
+            match T::deserialize(reader) {
+                Ok(value) => Ok(Ok(value)),
+                Err(error) => Err(error),
+            }
+        } else {
+            match crate::Error::deserialize(reader) {
+                Ok(error) => Ok(Err(error)),
+                Err(error) => Err(error),
+            }
         }
     }
 }

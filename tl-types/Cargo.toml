@@ -13,3 +13,7 @@ thiserror = "2"
 tl-parser = { path = "../tl-parser" }
 tl-generator = { path = "../tl-generator" }
 anyhow = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"

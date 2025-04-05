@@ -1,4 +1,4 @@
-use crate::output::Output;
+use crate::Output;
 use convert_case::{Case, Casing};
 use std::collections::HashMap;
 use tl_parser::*;
@@ -9,6 +9,26 @@ pub(crate) trait Generate {
 
 impl Generate for Schema {
     fn generate(&self, output: &mut Output) {
+        generate_enum(
+            output, "Error", "errors",
+            &self.errors.iter()
+                .map(|def| get_definition_name(&def.core, false))
+                .collect::<Vec<_>>(),
+            false,
+        );
+
+        output.write("\n");
+
+        generate_enum(
+            output, "Function", "functions",
+            &self.functions.iter()
+                .map(|def| get_definition_name(&def.core, true))
+                .collect::<Vec<_>>(),
+            true,
+        );
+
+        output.write("\n");
+
         output.write_line(|o| o.write("pub mod types {"));
         output.with_indent(|o| {
             for def in &self.types {
@@ -20,7 +40,25 @@ impl Generate for Schema {
 
         output.write("\n");
 
-        generate_enums(output, &self.types);
+        output.write_line(|o| o.write("pub mod enums {"));
+        output.with_indent(|o| {
+            let mut enums = HashMap::new();
+            for def in &self.types {
+                enums.entry(def.r#enum.clone()).or_insert_with(Vec::new).push(def);
+            }
+
+            for (name, definitions) in enums {
+                generate_enum(
+                    o, &name, "types",
+                    &definitions.into_iter()
+                        .map(|def| get_definition_name(&def.core, false))
+                        .collect::<Vec<_>>(),
+                    false,
+                );
+                o.write("\n");
+            }
+        });
+        output.write_line(|o| o.write("}"));
 
         output.write("\n");
 
@@ -48,19 +86,19 @@ impl Generate for Schema {
 
 impl Generate for TypeDefinition {
     fn generate(&self, output: &mut Output) {
-        generate_definition(output, self.id, self.name.clone(), &self.fields, None);
+        generate_definition(output, &self.core, None);
     }
 }
 
 impl Generate for ErrorDefinition {
     fn generate(&self, output: &mut Output) {
-        generate_definition(output, self.id, self.name.clone(), &self.fields, None);
+        generate_definition(output, &self.core, None);
     }
 }
 
 impl Generate for FunctionDefinition {
     fn generate(&self, output: &mut Output) {
-        generate_definition(output, self.id, self.name.clone(), &self.fields, Some(&self.r#return));
+        generate_definition(output, &self.core, Some(&self.r#return));
     }
 }
 
@@ -92,138 +130,132 @@ impl Generate for Type {
     }
 }
 
-fn collect_enums(type_definitions: &[TypeDefinition]) -> HashMap<String, Vec<&TypeDefinition>> {
-    let mut enums = HashMap::new();
-    for def in type_definitions {
-        enums.entry(def.r#enum.clone()).or_insert_with(Vec::new).push(def);
+fn get_definition_name(
+    core: &DefinitionCore,
+    is_function: bool,
+) -> String {
+    if is_function {
+        core.name.to_case(Case::Pascal)
+    } else {
+        core.name.clone()
     }
-    enums
 }
 
-fn generate_enums(
-    output: &mut Output,
-    type_definitions: &[TypeDefinition],
+fn generate_enum(
+    o: &mut Output,
+    name: &str,
+    group: &str,
+    definitions: &[String],
+    is_function: bool,
 ) {
-    output.write_line(|o| o.write("pub mod enums {"));
-    
-    output.with_indent(|o| {
-        for (name, definitions) in collect_enums(type_definitions) {
-            o.write_line(|o| o.write("#[derive(Debug)]"));
+    o.write_line(|o| o.write("#[derive(Debug, Clone, PartialEq)]"));
+    o.write_line(|o| {
+        o.write("pub enum ");
+        o.write(name);
+        o.write(" {");
+    });
+    o.with_indent(|o| {
+        for def in definitions {
             o.write_line(|o| {
-                o.write("pub enum ");
-                o.write(&name);
-                o.write(" {");
+                o.write(def);
+                o.write(&format!("(crate::{group}::"));
+                o.write(def);
+                o.write("),");
             });
-            o.with_indent(|o| {
-                for &def in &definitions {
-                    o.write_line(|o| {
-                        o.write(&def.name);
-                        o.write("(crate::types::");
-                        o.write(&def.name);
-                        o.write("),");
-                    });
-                }
-            });
-            o.write_line(|o| o.write("}"));
-            
-            o.write("\n");
-            
-            o.write_line(|o| {
-                o.write("impl crate::Serialize for ");
-                o.write(&name);
-                o.write(" {");
-            });
-            o.with_indent(|o| {
-                o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
-                o.with_indent(|o| {
-                    o.write_line(|o| o.write("use crate::Identify;"));
-                    o.write("\n");
-                    o.write_line(|o| o.write("match self {"));
-                    o.with_indent(|o| {
-                        for &def in &definitions {
-                            o.write_line(|o| {
-                                o.write("Self::");
-                                o.write(&def.name);
-                                o.write("(x) => {");
-                            });
-                            o.with_indent(|o| {
-                                o.write_line(|o| {
-                                    o.write("crate::types::");
-                                    o.write(&def.name);
-                                    o.write("::ID.serialize(buf);");
-                                });
-                                o.write_line(|o| o.write("x.serialize(buf);"));
-                            });
-                            o.write_line(|o| o.write("}"));
-                        }
-                    });
-                    o.write_line(|o| o.write("};"));
-                });
-                o.write_line(|o| o.write("}"));
-            });
-            o.write_line(|o| o.write("}"));
-            
-            o.write("\n");
-            
-            o.write_line(|o| {
-                o.write("impl crate::Deserialize for ");
-                o.write(&name);
-                o.write(" {");
-            });
-            o.with_indent(|o| {
-                o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
-                o.with_indent(|o| {
-                    o.write_line(|o| o.write("use crate::Identify;"));
-                    o.write("\n");
-                    o.write_line(|o| o.write("let id = u32::deserialize(reader)?;"));
-                    o.write("\n");
-                    o.write_line(|o| o.write("Ok(match id {"));
-                    o.with_indent(|o| {
-                        for &def in &definitions {
-                            o.write_line(|o| {
-                                o.write("crate::types::");
-                                o.write(&def.name);
-                                o.write("::ID => Self::");
-                                o.write(&def.name);
-                                o.write("(crate::types::");
-                                o.write(&def.name);
-                                o.write("::deserialize(reader)?),");
-                            });
-                        }
-                        o.write_line(|o| o.write("_ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),"));
-                    });
-                    o.write_line(|o| o.write("})"));
-                });
-                o.write_line(|o| o.write("}"));
-            });
-            o.write_line(|o| o.write("}"));
-            
-            o.write("\n");
         }
     });
-    
-    output.write_line(|o| o.write("}"));
+    o.write_line(|o| o.write("}"));
+
+    if !is_function {
+        o.write("\n");
+
+        o.write_line(|o| {
+            o.write("impl crate::Serialize for ");
+            o.write(name);
+            o.write(" {");
+        });
+        o.with_indent(|o| {
+            o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
+            o.with_indent(|o| {
+                o.write_line(|o| o.write("use crate::Identify;"));
+                o.write("\n");
+                o.write_line(|o| o.write("match self {"));
+                o.with_indent(|o| {
+                    for def in definitions {
+                        o.write_line(|o| {
+                            o.write("Self::");
+                            o.write(def);
+                            o.write("(x) => {");
+                        });
+                        o.with_indent(|o| {
+                            o.write_line(|o| {
+                                o.write(&format!("crate::{group}::"));
+                                o.write(def);
+                                o.write("::ID.serialize(buf);");
+                            });
+                            o.write_line(|o| o.write("x.serialize(buf);"));
+                        });
+                        o.write_line(|o| o.write("}"));
+                    }
+                });
+                o.write_line(|o| o.write("};"));
+            });
+            o.write_line(|o| o.write("}"));
+        });
+        o.write_line(|o| o.write("}"));
+    }
+
+    o.write("\n");
+
+    o.write_line(|o| {
+        o.write("impl crate::Deserialize for ");
+        o.write(name);
+        o.write(" {");
+    });
+    o.with_indent(|o| {
+        o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
+        o.with_indent(|o| {
+            o.write_line(|o| o.write("use crate::Identify;"));
+            o.write("\n");
+            o.write_line(|o| o.write("let id = u32::deserialize(reader)?;"));
+            o.write("\n");
+            o.write_line(|o| o.write("Ok(match id {"));
+            o.with_indent(|o| {
+                for def in definitions {
+                    o.write_line(|o| {
+                        o.write(&format!("crate::{group}::"));
+                        o.write(def);
+                        o.write("::ID => Self::");
+                        o.write(def);
+                        o.write(&format!("(crate::{group}::"));
+                        o.write(def);
+                        o.write("::deserialize(reader)?),");
+                    });
+                }
+                o.write_line(|o| o.write("_ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),"));
+            });
+            o.write_line(|o| o.write("})"));
+        });
+        o.write_line(|o| o.write("}"));
+    });
+    o.write_line(|o| o.write("}"));
 }
 
 fn generate_definition(
-    output: &mut Output,
-    id: u32,
-    mut name: String,
-    fields: &[Field],
+    o: &mut Output,
+    core: &DefinitionCore,
     r#return: Option<&Type>,
 ) {
-    if r#return.is_some() {
-        name = name.to_case(Case::Pascal);
-    }
+    let name = get_definition_name(core, r#return.is_some());
 
-    output.write_line(|o| o.write("#[derive(Debug)]"));
-    output.write_line(|o| {
+    o.write_line(|o| o.write("#[derive(Debug, Clone, PartialEq)]"));
+    o.write_line(|o| {
         o.write("pub struct ");
         o.write(&name);
         o.write(" {");
     });
-    output.with_indent(|o| {
-        for f in fields {
+    o.with_indent(|o| {
+        for f in &core.fields {
             o.write_line(|o| {
                 o.write("pub ");
                 o.write(&f.name);
@@ -233,35 +265,41 @@ fn generate_definition(
             });
         }
     });
-    output.write_line(|o| o.write("}"));
+    o.write_line(|o| o.write("}"));
 
-    output.write("\n");
+    o.write("\n");
 
-    output.write_line(|o| {
+    o.write_line(|o| {
         o.write("impl crate::Identify for ");
         o.write(&name);
         o.write(" {");
     });
-    output.with_indent(|o| {
+    o.with_indent(|o| {
         o.write_line(|o| {
             o.write("const ID: u32 = ");
-            o.write(&id.to_string());
+            o.write(&core.id.to_string());
             o.write(";");
         });
     });
-    output.write_line(|o| o.write("}"));
+    o.write_line(|o| o.write("}"));
 
-    output.write("\n");
+    o.write("\n");
 
-    output.write_line(|o| {
+    o.write_line(|o| {
         o.write("impl crate::Serialize for ");
         o.write(&name);
         o.write(" {");
     });
-    output.with_indent(|o| {
+    o.with_indent(|o| {
         o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
         o.with_indent(|o| {
-            for f in fields {
+            if r#return.is_some() {
+                o.write_line(|o| o.write("use crate::Identify;"));
+                o.write("\n");
+                o.write_line(|o| o.write("Self::ID.serialize(buf);"));
+                o.write("\n");
+            }
+            for f in &core.fields {
                 o.write_line(|o| {
                     o.write("self.");
                     o.write(&f.name);
@@ -271,19 +309,19 @@ fn generate_definition(
         });
         o.write_line(|o| o.write("}"));
     });
-    output.write_line(|o| o.write("}"));
+    o.write_line(|o| o.write("}"));
 
-    output.write("\n");
+    o.write("\n");
 
-    output.write_line(|o| {
+    o.write_line(|o| {
         o.write("impl crate::Deserialize for ");
         o.write(&name);
         o.write(" {");
     });
-    output.with_indent(|o| {
+    o.with_indent(|o| {
         o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
         o.with_indent(|o| {
-            for f in fields {
+            for f in &core.fields {
                 o.write_line(|o| {
                     o.write("let ");
                     o.write(&f.name);
@@ -295,7 +333,7 @@ fn generate_definition(
             o.write("\n");
             o.write_line(|o| {
                 o.write("Ok(Self { ");
-                for f in fields {
+                for f in &core.fields {
                     o.write(&f.name);
                     o.write(", ");
                 }
@@ -304,23 +342,23 @@ fn generate_definition(
         });
         o.write_line(|o| o.write("}"));
     });
-    output.write_line(|o| o.write("}"));
+    o.write_line(|o| o.write("}"));
 
     if let Some(r#return) = r#return {
-        output.write("\n");
+        o.write("\n");
 
-        output.write_line(|o| {
-            o.write("impl crate::Function for ");
+        o.write_line(|o| {
+            o.write("impl crate::Call for ");
             o.write(&name);
             o.write(" {");
         });
-        output.with_indent(|o| {
+        o.with_indent(|o| {
             o.write_line(|o| {
                 o.write("type Return = ");
                 r#return.generate(o);
                 o.write(";");
             });
         });
-        output.write_line(|o| o.write("}"));
+        o.write_line(|o| o.write("}"));
     }
 }
