@@ -26,13 +26,13 @@ impl<'a> Reader<'a> {
 
         Ok(())
     }
-    
+
     pub(crate) fn read_to<const N: usize>(&mut self) -> Result<[u8; N], Error> {
         let mut buf = [0; N];
         self.read(&mut buf)?;
         Ok(buf)
     }
-    
+
     pub(crate) fn read_to_vec(&mut self, len: usize) -> Result<Vec<u8>, Error> {
         let mut buf = vec![0; len];
         self.read(&mut buf)?;
@@ -62,9 +62,9 @@ mod tests {
 
         let mut buf = [0; 1];
         reader.read(&mut buf).unwrap_err();
-        
+
         reader.pos = 0;
-        
+
         assert_eq!(reader.read_to().unwrap(), [1, 2, 3]);
         assert_eq!(reader.read_to().unwrap(), [4]);
         assert_eq!(reader.read_to().unwrap(), []);

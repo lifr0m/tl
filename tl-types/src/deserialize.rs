@@ -4,8 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("unexpected eof")]
-    UnexpectedEof(#[from] crate::reader::Error),
+    #[error("read error: {0}")]
+    Read(#[from] crate::reader::Error),
 
     #[error("invalid string: {0}")]
     InvalidString(#[from] std::string::FromUtf8Error),
