@@ -118,7 +118,7 @@ mod tests {
         assert_eq!(de::<f64>(vec![0xbc, 0x90, 0x0e, 0x0f, 0x61, 0x3a, 0x81, 0x40]), 551.297392_f64);
         assert_eq!(de::<bool>(vec![0x1]), true);
         assert_eq!(de::<bool>(vec![0x0]), false);
-        assert_eq!(de::<String>(vec![0x5, b'h', b'e', b'l', b'l', b'o']), "hello".to_string());
+        assert_eq!(de::<String>(vec![0x5, b'h', b'e', b'l', b'l', b'o']), String::from("hello"));
         assert_eq!(
             de::<Vec<u8>>([vec![0xff, 0xe8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0], vec![0xdd; 997], vec![b'j', b'o', b'y']].concat()),
             [vec![0xdd; 997], vec![b'j', b'o', b'y']].concat()

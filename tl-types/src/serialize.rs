@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(ser(551.297392_f64), vec![0xbc, 0x90, 0x0e, 0x0f, 0x61, 0x3a, 0x81, 0x40]);
         assert_eq!(ser(true), vec![0x1]);
         assert_eq!(ser(false), vec![0x0]);
-        assert_eq!(ser("hello".to_string()), vec![0x5, b'h', b'e', b'l', b'l', b'o']);
+        assert_eq!(ser(String::from("hello")), vec![0x5, b'h', b'e', b'l', b'l', b'o']);
         assert_eq!(
             ser([vec![0xdd; 997], vec![b'j', b'o', b'y']].concat()),
             [vec![0xff, 0xe8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0], vec![0xdd; 997], vec![b'j', b'o', b'y']].concat()

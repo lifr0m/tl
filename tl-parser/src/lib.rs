@@ -111,7 +111,7 @@ fn parse_definitions<'a>(
             Some("type") => types.push(parse_type_definition(id, line, def, &types)?),
             Some("error") => errors.push(parse_error_definition(id, line, def, &types, &errors)?),
             Some("func") => functions.push(parse_function_definition(id, line, def, &types, &functions)?),
-            Some(r#type) => return Err(ParseError::InvalidDefinitionType { line, desc: r#type.to_string() }),
+            Some(r#type) => return Err(ParseError::InvalidDefinitionType { line, desc: r#type.to_owned() }),
             None => return Err(ParseError::DefinitionTypeMissing { line }),
         };
     }
@@ -134,7 +134,7 @@ fn parse_type_definition<'a>(
 ) -> Result<TypeDefinition, ParseError> {
     let name = def.next()
         .ok_or(ParseError::DefinitionNameMissing { line })?
-        .to_string();
+        .to_owned();
     if type_defined(&name, type_definitions) {
         return Err(ParseError::DuplicateDefinition { line, desc: name });
     }
@@ -143,7 +143,7 @@ fn parse_type_definition<'a>(
 
     let r#enum = def.next()
         .ok_or(ParseError::EnumMissing { line })?
-        .to_string();
+        .to_owned();
 
     Ok(TypeDefinition { id, name, fields, r#enum })
 }
@@ -157,7 +157,7 @@ fn parse_error_definition<'a>(
 ) -> Result<ErrorDefinition, ParseError> {
     let name = def.next()
         .ok_or(ParseError::DefinitionNameMissing { line })?
-        .to_string();
+        .to_owned();
     if error_defined(&name, error_definitions) {
         return Err(ParseError::DuplicateDefinition { line, desc: name });
     }
@@ -177,7 +177,7 @@ fn parse_function_definition<'a>(
 ) -> Result<FunctionDefinition, ParseError> {
     let name = def.next()
         .ok_or(ParseError::DefinitionNameMissing { line })?
-        .to_string();
+        .to_owned();
     if function_defined(&name, function_definitions) {
         return Err(ParseError::DuplicateDefinition { line, desc: name });
     }
@@ -207,7 +207,7 @@ fn parse_fields<'a>(
 
         let name = part.next()
             .ok_or(ParseError::FieldNameMissing { line })?
-            .to_string();
+            .to_owned();
         if field_defined(&name, &fields) {
             return Err(ParseError::DuplicateField { line, desc: name });
         }
@@ -253,8 +253,8 @@ fn parse_type(
                 type_definitions,
                 Some(OuterType::Option),
             )?)),
-        _ if enum_defined(r#type, type_definitions) => Type::Defined(r#type.to_string()),
-        _ => return Err(ParseError::InvalidType { line, field: field.to_string(), desc: r#type.to_string() }),
+        _ if enum_defined(r#type, type_definitions) => Type::Defined(r#type.to_owned()),
+        _ => return Err(ParseError::InvalidType { line, field: field.to_owned(), desc: r#type.to_owned() }),
     };
 
     if let Some(outer) = outer {
@@ -267,7 +267,7 @@ fn parse_type(
         ) {
             return Err(ParseError::InvalidType {
                 line,
-                field: field.to_string(),
+                field: field.to_owned(),
                 desc: format!("invalid nested type: {:?}<{:?}>", outer, r#type),
             });
         }
