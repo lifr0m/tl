@@ -11,17 +11,25 @@ fn main() -> anyhow::Result<()> {
         == "true";
 
     let schema = if ci {
-        String::from("")
+        String::from("type Message id:int32 text:string? photos:[bytes] sent_at:time = Message
+type User id:int64 verified:bool rating:float = User
+type UserEmpty id:int64 = User
+
+error InvalidUserId user_id:int64
+error TooLongText text:string max_length:int64
+
+func get_users user_ids:[int64] = [User]
+func send_message user_id:int64 text:string? photos:[bytes] = Message")
     } else {
         fs::read_to_string("schema.tl")
-            .context("Failed to read schema.tl")?
+            .context("failed to read schema.tl")?
     };
     let schema = tl_parser::parse_schema(&schema)
-        .context("Failed to parse schema")?;
+        .context("failed to parse schema")?;
     let code = tl_generator::generate(&schema);
 
     fs::write(out_file, code)
-        .context("Failed to write generated code")?;
+        .context("failed to write generated code")?;
 
     Ok(())
 }

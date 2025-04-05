@@ -5,6 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/tl-generator/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tl-parser/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tl-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tl-types/examples" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
