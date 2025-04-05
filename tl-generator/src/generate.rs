@@ -171,11 +171,11 @@ fn generate_enums(
                 o.write(" {");
             });
             o.with_indent(|o| {
-                o.write_line(|o| o.write("fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {"));
+                o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
                 o.with_indent(|o| {
                     o.write_line(|o| o.write("use crate::Identify;"));
                     o.write("\n");
-                    o.write_line(|o| o.write("let id = u32::deserialize(cur)?;"));
+                    o.write_line(|o| o.write("let id = u32::deserialize(reader)?;"));
                     o.write("\n");
                     o.write_line(|o| o.write("Ok(match id {"));
                     o.with_indent(|o| {
@@ -187,7 +187,7 @@ fn generate_enums(
                                 o.write(&def.name);
                                 o.write("(crate::types::");
                                 o.write(&def.name);
-                                o.write("::deserialize(cur)?),");
+                                o.write("::deserialize(reader)?),");
                             });
                         }
                         o.write_line(|o| o.write("_ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),"));
@@ -281,7 +281,7 @@ fn generate_definition(
         o.write(" {");
     });
     output.with_indent(|o| {
-        o.write_line(|o| o.write("fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {"));
+        o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
         o.with_indent(|o| {
             for f in fields {
                 o.write_line(|o| {
@@ -289,7 +289,7 @@ fn generate_definition(
                     o.write(&f.name);
                     o.write(" = ");
                     f.r#type.generate(o);
-                    o.write("::deserialize(cur)?;");
+                    o.write("::deserialize(reader)?;");
                 });
             }
             o.write("\n");

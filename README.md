@@ -26,6 +26,7 @@ func send_message user_id:int64 text:string? photos:[bytes] = Message
 
 ```rust
 pub mod types {
+    #[derive(Debug)]
     pub struct Message {
         pub id: i32,
         pub text: Option::<String>,
@@ -47,16 +48,17 @@ pub mod types {
     }
 
     impl crate::Deserialize for Message {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let id = i32::deserialize(cur)?;
-            let text = Option::<String>::deserialize(cur)?;
-            let photos = Vec::<Vec::<u8>>::deserialize(cur)?;
-            let sent_at = std::time::SystemTime::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let id = i32::deserialize(reader)?;
+            let text = Option::<String>::deserialize(reader)?;
+            let photos = Vec::<Vec::<u8>>::deserialize(reader)?;
+            let sent_at = std::time::SystemTime::deserialize(reader)?;
 
             Ok(Self { id, text, photos, sent_at, })
         }
     }
 
+    #[derive(Debug)]
     pub struct User {
         pub id: i64,
         pub verified: bool,
@@ -76,15 +78,16 @@ pub mod types {
     }
 
     impl crate::Deserialize for User {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let id = i64::deserialize(cur)?;
-            let verified = bool::deserialize(cur)?;
-            let rating = f64::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let id = i64::deserialize(reader)?;
+            let verified = bool::deserialize(reader)?;
+            let rating = f64::deserialize(reader)?;
 
             Ok(Self { id, verified, rating, })
         }
     }
 
+    #[derive(Debug)]
     pub struct UserEmpty {
         pub id: i64,
     }
@@ -100,8 +103,8 @@ pub mod types {
     }
 
     impl crate::Deserialize for UserEmpty {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let id = i64::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let id = i64::deserialize(reader)?;
 
             Ok(Self { id, })
         }
@@ -110,6 +113,38 @@ pub mod types {
 }
 
 pub mod enums {
+    #[derive(Debug)]
+    pub enum Message {
+        Message(crate::types::Message),
+    }
+
+    impl crate::Serialize for Message {
+        fn serialize(&self, buf: &mut Vec<u8>) {
+            use crate::Identify;
+
+            match self {
+                Self::Message(x) => {
+                    crate::types::Message::ID.serialize(buf);
+                    x.serialize(buf);
+                }
+            };
+        }
+    }
+
+    impl crate::Deserialize for Message {
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            use crate::Identify;
+
+            let id = u32::deserialize(reader)?;
+
+            Ok(match id {
+                crate::types::Message::ID => Self::Message(crate::types::Message::deserialize(reader)?),
+                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
+            })
+        }
+    }
+
+    #[derive(Debug)]
     pub enum User {
         User(crate::types::User),
         UserEmpty(crate::types::UserEmpty),
@@ -120,57 +155,27 @@ pub mod enums {
             use crate::Identify;
 
             match self {
-                Self::User(v) => {
+                Self::User(x) => {
                     crate::types::User::ID.serialize(buf);
-                    v.serialize(buf);
+                    x.serialize(buf);
                 }
-                Self::UserEmpty(v) => {
+                Self::UserEmpty(x) => {
                     crate::types::UserEmpty::ID.serialize(buf);
-                    v.serialize(buf);
+                    x.serialize(buf);
                 }
             };
         }
     }
 
     impl crate::Deserialize for User {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
             use crate::Identify;
 
-            let id = u32::deserialize(cur)?;
+            let id = u32::deserialize(reader)?;
 
             Ok(match id {
-                crate::types::User::ID => Self::User(crate::types::User::deserialize(cur)?),
-                crate::types::UserEmpty::ID => Self::UserEmpty(crate::types::UserEmpty::deserialize(cur)?),
-                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
-            })
-        }
-    }
-
-    pub enum Message {
-        Message(crate::types::Message),
-    }
-
-    impl crate::Serialize for Message {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            use crate::Identify;
-
-            match self {
-                Self::Message(v) => {
-                    crate::types::Message::ID.serialize(buf);
-                    v.serialize(buf);
-                }
-            };
-        }
-    }
-
-    impl crate::Deserialize for Message {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            use crate::Identify;
-
-            let id = u32::deserialize(cur)?;
-
-            Ok(match id {
-                crate::types::Message::ID => Self::Message(crate::types::Message::deserialize(cur)?),
+                crate::types::User::ID => Self::User(crate::types::User::deserialize(reader)?),
+                crate::types::UserEmpty::ID => Self::UserEmpty(crate::types::UserEmpty::deserialize(reader)?),
                 _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
             })
         }
@@ -179,12 +184,13 @@ pub mod enums {
 }
 
 pub mod errors {
+    #[derive(Debug)]
     pub struct InvalidUserId {
         pub id: i64,
     }
 
     impl crate::Identify for InvalidUserId {
-        const ID: u32 = 1636459753;
+        const ID: u32 = 195021614;
     }
 
     impl crate::Serialize for InvalidUserId {
@@ -194,20 +200,21 @@ pub mod errors {
     }
 
     impl crate::Deserialize for InvalidUserId {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let id = i64::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let id = i64::deserialize(reader)?;
 
             Ok(Self { id, })
         }
     }
 
+    #[derive(Debug)]
     pub struct TooLongText {
         pub text: String,
         pub max_length: i64,
     }
 
     impl crate::Identify for TooLongText {
-        const ID: u32 = 1299639700;
+        const ID: u32 = 2294709341;
     }
 
     impl crate::Serialize for TooLongText {
@@ -218,9 +225,9 @@ pub mod errors {
     }
 
     impl crate::Deserialize for TooLongText {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let text = String::deserialize(cur)?;
-            let max_length = i64::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let text = String::deserialize(reader)?;
+            let max_length = i64::deserialize(reader)?;
 
             Ok(Self { text, max_length, })
         }
@@ -229,6 +236,7 @@ pub mod errors {
 }
 
 pub mod functions {
+    #[derive(Debug)]
     pub struct GetUsers {
         pub user_ids: Vec::<i64>,
     }
@@ -244,8 +252,8 @@ pub mod functions {
     }
 
     impl crate::Deserialize for GetUsers {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let user_ids = Vec::<i64>::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let user_ids = Vec::<i64>::deserialize(reader)?;
 
             Ok(Self { user_ids, })
         }
@@ -255,6 +263,7 @@ pub mod functions {
         type Return = Vec::<crate::enums::User>;
     }
 
+    #[derive(Debug)]
     pub struct SendMessage {
         pub user_id: i64,
         pub text: Option::<String>,
@@ -274,10 +283,10 @@ pub mod functions {
     }
 
     impl crate::Deserialize for SendMessage {
-        fn deserialize(cur: &mut std::io::Cursor<Vec<u8>>) -> Result<Self, crate::deserialize::Error> {
-            let user_id = i64::deserialize(cur)?;
-            let text = Option::<String>::deserialize(cur)?;
-            let photos = Vec::<Vec::<u8>>::deserialize(cur)?;
+        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
+            let user_id = i64::deserialize(reader)?;
+            let text = Option::<String>::deserialize(reader)?;
+            let photos = Vec::<Vec::<u8>>::deserialize(reader)?;
 
             Ok(Self { user_id, text, photos, })
         }
