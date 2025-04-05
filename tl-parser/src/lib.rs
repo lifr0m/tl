@@ -1,5 +1,4 @@
 use aws_lc_rs::digest;
-use std::io::Read;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
