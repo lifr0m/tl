@@ -4,8 +4,8 @@ Like Telegram's one but simpler.
 
 ### Key differences
 
-1. Doesn't support bit flags.
-2. Supports errors.
+1. Supports errors.
+2. Doesn't support bit flags.
 
 ### Example schema
 
@@ -15,7 +15,7 @@ type User id:int64 verified:bool rating:float = User
 type UserEmpty id:int64 = User
 
 error InvalidUserId user_id:int64
-error TooLongText text:string max_length:int64
+error TooLongText text:string max_length:int32
 
 func get_users user_ids:[int64] = [User]
 func send_message user_id:int64 text:string? photos:[bytes] = Message
@@ -27,22 +27,26 @@ func send_message user_id:int64 text:string? photos:[bytes] = Message
 ```rust
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
-    InvalidUserId(crate::errors::InvalidUserId),
-    TooLongText(crate::errors::TooLongText),
+    InvalidUserId {
+        user_id: i64,
+    },
+    TooLongText {
+        text: String,
+        max_length: i32,
+    },
 }
 
 impl crate::Serialize for Error {
     fn serialize(&self, buf: &mut Vec<u8>) {
-        use crate::Identify;
-
         match self {
-            Self::InvalidUserId(x) => {
-                crate::errors::InvalidUserId::ID.serialize(buf);
-                x.serialize(buf);
+            Self::InvalidUserId { user_id: user_id_, } => {
+                2283843567_u32.serialize(buf);
+                user_id_.serialize(buf);
             }
-            Self::TooLongText(x) => {
-                crate::errors::TooLongText::ID.serialize(buf);
-                x.serialize(buf);
+            Self::TooLongText { text: text_, max_length: max_length_, } => {
+                1447747856_u32.serialize(buf);
+                text_.serialize(buf);
+                max_length_.serialize(buf);
             }
         };
     }
@@ -50,13 +54,20 @@ impl crate::Serialize for Error {
 
 impl crate::Deserialize for Error {
     fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-        use crate::Identify;
-
         let id = u32::deserialize(reader)?;
 
         Ok(match id {
-            crate::errors::InvalidUserId::ID => Self::InvalidUserId(crate::errors::InvalidUserId::deserialize(reader)?),
-            crate::errors::TooLongText::ID => Self::TooLongText(crate::errors::TooLongText::deserialize(reader)?),
+            2283843567_u32 => {
+                let user_id_ = i64::deserialize(reader)?;
+
+                Self::InvalidUserId { user_id: user_id_, }
+            }
+            1447747856_u32 => {
+                let text_ = String::deserialize(reader)?;
+                let max_length_ = i32::deserialize(reader)?;
+
+                Self::TooLongText { text: text_, max_length: max_length_, }
+            }
             _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
         })
     }
@@ -70,13 +81,11 @@ pub enum Function {
 
 impl crate::Deserialize for Function {
     fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-        use crate::Identify;
-
         let id = u32::deserialize(reader)?;
 
         Ok(match id {
-            crate::functions::GetUsers::ID => Self::GetUsers(crate::functions::GetUsers::deserialize(reader)?),
-            crate::functions::SendMessage::ID => Self::SendMessage(crate::functions::SendMessage::deserialize(reader)?),
+            1904452899_u32 => Self::GetUsers(crate::functions::GetUsers::deserialize(reader)?),
+            339054040_u32 => Self::SendMessage(crate::functions::SendMessage::deserialize(reader)?),
             _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
         })
     }
@@ -84,110 +93,71 @@ impl crate::Deserialize for Function {
 
 pub mod types {
     #[derive(Debug, Clone, PartialEq)]
-    pub struct Message {
-        pub id: i32,
-        pub text: Option::<String>,
-        pub photos: Vec::<Vec::<u8>>,
-        pub sent_at: std::time::SystemTime,
-    }
-
-    impl crate::Identify for Message {
-        const ID: u32 = 2225622240;
+    pub enum Message {
+        Message {
+            id: i32,
+            text: Option::<String>,
+            photos: Vec::<Vec::<u8>>,
+            sent_at: std::time::SystemTime,
+        },
     }
 
     impl crate::Serialize for Message {
         fn serialize(&self, buf: &mut Vec<u8>) {
-            self.id.serialize(buf);
-            self.text.serialize(buf);
-            self.photos.serialize(buf);
-            self.sent_at.serialize(buf);
+            match self {
+                Self::Message { id: id_, text: text_, photos: photos_, sent_at: sent_at_, } => {
+                    2225622240_u32.serialize(buf);
+                    id_.serialize(buf);
+                    text_.serialize(buf);
+                    photos_.serialize(buf);
+                    sent_at_.serialize(buf);
+                }
+            };
         }
     }
 
     impl crate::Deserialize for Message {
         fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let id = i32::deserialize(reader)?;
-            let text = Option::<String>::deserialize(reader)?;
-            let photos = Vec::<Vec::<u8>>::deserialize(reader)?;
-            let sent_at = std::time::SystemTime::deserialize(reader)?;
+            let id = u32::deserialize(reader)?;
 
-            Ok(Self { id, text, photos, sent_at, })
+            Ok(match id {
+                2225622240_u32 => {
+                    let id_ = i32::deserialize(reader)?;
+                    let text_ = Option::<String>::deserialize(reader)?;
+                    let photos_ = Vec::<Vec::<u8>>::deserialize(reader)?;
+                    let sent_at_ = std::time::SystemTime::deserialize(reader)?;
+
+                    Self::Message { id: id_, text: text_, photos: photos_, sent_at: sent_at_, }
+                }
+                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
+            })
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct User {
-        pub id: i64,
-        pub verified: bool,
-        pub rating: f64,
-    }
-
-    impl crate::Identify for User {
-        const ID: u32 = 4055296785;
-    }
-
-    impl crate::Serialize for User {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            self.id.serialize(buf);
-            self.verified.serialize(buf);
-            self.rating.serialize(buf);
-        }
-    }
-
-    impl crate::Deserialize for User {
-        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let id = i64::deserialize(reader)?;
-            let verified = bool::deserialize(reader)?;
-            let rating = f64::deserialize(reader)?;
-
-            Ok(Self { id, verified, rating, })
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct UserEmpty {
-        pub id: i64,
-    }
-
-    impl crate::Identify for UserEmpty {
-        const ID: u32 = 990500211;
-    }
-
-    impl crate::Serialize for UserEmpty {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            self.id.serialize(buf);
-        }
-    }
-
-    impl crate::Deserialize for UserEmpty {
-        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let id = i64::deserialize(reader)?;
-
-            Ok(Self { id, })
-        }
-    }
-
-}
-
-pub mod enums {
     #[derive(Debug, Clone, PartialEq)]
     pub enum User {
-        User(crate::types::User),
-        UserEmpty(crate::types::UserEmpty),
+        User {
+            id: i64,
+            verified: bool,
+            rating: f64,
+        },
+        UserEmpty {
+            id: i64,
+        },
     }
 
     impl crate::Serialize for User {
         fn serialize(&self, buf: &mut Vec<u8>) {
-            use crate::Identify;
-
             match self {
-                Self::User(x) => {
-                    crate::types::User::ID.serialize(buf);
-                    x.serialize(buf);
+                Self::User { id: id_, verified: verified_, rating: rating_, } => {
+                    4055296785_u32.serialize(buf);
+                    id_.serialize(buf);
+                    verified_.serialize(buf);
+                    rating_.serialize(buf);
                 }
-                Self::UserEmpty(x) => {
-                    crate::types::UserEmpty::ID.serialize(buf);
-                    x.serialize(buf);
+                Self::UserEmpty { id: id_, } => {
+                    990500211_u32.serialize(buf);
+                    id_.serialize(buf);
                 }
             };
         }
@@ -195,98 +165,23 @@ pub mod enums {
 
     impl crate::Deserialize for User {
         fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            use crate::Identify;
-
             let id = u32::deserialize(reader)?;
 
             Ok(match id {
-                crate::types::User::ID => Self::User(crate::types::User::deserialize(reader)?),
-                crate::types::UserEmpty::ID => Self::UserEmpty(crate::types::UserEmpty::deserialize(reader)?),
-                _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
-            })
-        }
-    }
+                4055296785_u32 => {
+                    let id_ = i64::deserialize(reader)?;
+                    let verified_ = bool::deserialize(reader)?;
+                    let rating_ = f64::deserialize(reader)?;
 
-    #[derive(Debug, Clone, PartialEq)]
-    pub enum Message {
-        Message(crate::types::Message),
-    }
-
-    impl crate::Serialize for Message {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            use crate::Identify;
-
-            match self {
-                Self::Message(x) => {
-                    crate::types::Message::ID.serialize(buf);
-                    x.serialize(buf);
+                    Self::User { id: id_, verified: verified_, rating: rating_, }
                 }
-            };
-        }
-    }
+                990500211_u32 => {
+                    let id_ = i64::deserialize(reader)?;
 
-    impl crate::Deserialize for Message {
-        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            use crate::Identify;
-
-            let id = u32::deserialize(reader)?;
-
-            Ok(match id {
-                crate::types::Message::ID => Self::Message(crate::types::Message::deserialize(reader)?),
+                    Self::UserEmpty { id: id_, }
+                }
                 _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
             })
-        }
-    }
-
-}
-
-pub mod errors {
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct InvalidUserId {
-        pub user_id: i64,
-    }
-
-    impl crate::Identify for InvalidUserId {
-        const ID: u32 = 2283843567;
-    }
-
-    impl crate::Serialize for InvalidUserId {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            self.user_id.serialize(buf);
-        }
-    }
-
-    impl crate::Deserialize for InvalidUserId {
-        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let user_id = i64::deserialize(reader)?;
-
-            Ok(Self { user_id, })
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct TooLongText {
-        pub text: String,
-        pub max_length: i64,
-    }
-
-    impl crate::Identify for TooLongText {
-        const ID: u32 = 2294709341;
-    }
-
-    impl crate::Serialize for TooLongText {
-        fn serialize(&self, buf: &mut Vec<u8>) {
-            self.text.serialize(buf);
-            self.max_length.serialize(buf);
-        }
-    }
-
-    impl crate::Deserialize for TooLongText {
-        fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let text = String::deserialize(reader)?;
-            let max_length = i64::deserialize(reader)?;
-
-            Ok(Self { text, max_length, })
         }
     }
 
@@ -298,30 +193,23 @@ pub mod functions {
         pub user_ids: Vec::<i64>,
     }
 
-    impl crate::Identify for GetUsers {
-        const ID: u32 = 1904452899;
-    }
-
     impl crate::Serialize for GetUsers {
         fn serialize(&self, buf: &mut Vec<u8>) {
-            use crate::Identify;
-
-            Self::ID.serialize(buf);
-
+            1904452899_u32.serialize(buf);
             self.user_ids.serialize(buf);
         }
     }
 
     impl crate::Deserialize for GetUsers {
         fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let user_ids = Vec::<i64>::deserialize(reader)?;
+            let user_ids_ = Vec::<i64>::deserialize(reader)?;
 
-            Ok(Self { user_ids, })
+            Ok(Self { user_ids: user_ids_, })
         }
     }
 
     impl crate::Call for GetUsers {
-        type Return = Vec::<crate::enums::User>;
+        type Return = Vec::<crate::types::User>;
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -331,16 +219,9 @@ pub mod functions {
         pub photos: Vec::<Vec::<u8>>,
     }
 
-    impl crate::Identify for SendMessage {
-        const ID: u32 = 339054040;
-    }
-
     impl crate::Serialize for SendMessage {
         fn serialize(&self, buf: &mut Vec<u8>) {
-            use crate::Identify;
-
-            Self::ID.serialize(buf);
-
+            339054040_u32.serialize(buf);
             self.user_id.serialize(buf);
             self.text.serialize(buf);
             self.photos.serialize(buf);
@@ -349,16 +230,16 @@ pub mod functions {
 
     impl crate::Deserialize for SendMessage {
         fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {
-            let user_id = i64::deserialize(reader)?;
-            let text = Option::<String>::deserialize(reader)?;
-            let photos = Vec::<Vec::<u8>>::deserialize(reader)?;
+            let user_id_ = i64::deserialize(reader)?;
+            let text_ = Option::<String>::deserialize(reader)?;
+            let photos_ = Vec::<Vec::<u8>>::deserialize(reader)?;
 
-            Ok(Self { user_id, text, photos, })
+            Ok(Self { user_id: user_id_, text: text_, photos: photos_, })
         }
     }
 
     impl crate::Call for SendMessage {
-        type Return = crate::enums::Message;
+        type Return = crate::types::Message;
     }
 
 }
@@ -371,4 +252,4 @@ pub mod functions {
 2. Create `schema.tl` file at the root of `tl-types` crate.
 3. Specify `tl-types` crate in dependencies of your project.
 
-See `examples` folder.
+See `example.rs` in `tl-types/tests` folder.

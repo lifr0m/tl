@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub trait Serialize {
     fn serialize(&self, buf: &mut Vec<u8>);
 
-    fn serialize_to(&self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         self.serialize(&mut buf);
         buf

@@ -15,5 +15,4 @@ tl-generator = { path = "../tl-generator" }
 anyhow = "1"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
 anyhow = "1"

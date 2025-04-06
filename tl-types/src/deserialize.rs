@@ -20,7 +20,7 @@ where
 {
     fn deserialize(reader: &mut Reader) -> Result<Self, Error>;
 
-    fn deserialize_from(buf: &[u8]) -> Result<Self, Error> {
+    fn from_bytes(buf: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(buf);
         Self::deserialize(&mut reader)
     }

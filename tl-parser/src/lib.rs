@@ -27,8 +27,8 @@ pub enum Error {
     #[error("line {line}: field {field}: type is missing")]
     FieldTypeMissing { line: usize, field: String },
 
-    #[error("line {line}: field {field}: invalid type: {type}")]
-    InvalidType { line: usize, field: String, r#type: String },
+    #[error("line {line}: field {field}: invalid type: {typ}")]
+    InvalidType { line: usize, field: String, typ: String },
 
     #[error("line {line}: enum is missing")]
     EnumMissing { line: usize },
@@ -57,12 +57,12 @@ pub struct ErrorDefinition {
 
 pub struct FunctionDefinition {
     pub core: DefinitionCore,
-    pub r#return: Type,
+    pub ret: Type,
 }
 
 pub struct Field {
     pub name: String,
-    pub r#type: Type,
+    pub typ: Type,
 }
 
 #[derive(Debug)]
@@ -163,11 +163,11 @@ fn parse_function_definition<'a>(
         return Err(Error::DuplicateDefinition { line });
     }
 
-    let r#return = def.next()
+    let ret = def.next()
         .ok_or(Error::FunctionTypeMissing { line })?;
-    let r#return = parse_type(line, "<return>", r#return, type_definitions, None)?;
+    let ret = parse_type(line, "<return>", ret, type_definitions, None)?;
 
-    Ok(FunctionDefinition { core, r#return })
+    Ok(FunctionDefinition { core, ret })
 }
 
 fn parse_definition_core<'a>(
@@ -207,11 +207,11 @@ fn parse_fields<'a>(
             return Err(Error::DuplicateField { line, field: name });
         }
 
-        let r#type = part.next()
+        let typ = part.next()
             .ok_or(Error::FieldTypeMissing { line, field: name.clone() })?;
-        let r#type = parse_type(line, &name, r#type, type_definitions, None)?;
+        let typ = parse_type(line, &name, typ, type_definitions, None)?;
 
-        fields.push(Field { name, r#type });
+        fields.push(Field { name, typ });
     }
 
     Ok(fields)
@@ -220,11 +220,11 @@ fn parse_fields<'a>(
 fn parse_type(
     line: usize,
     field: &str,
-    r#type: &str,
+    typ: &str,
     type_definitions: &[TypeDefinition],
     outer: Option<OuterType>,
 ) -> Result<Type, Error> {
-    let r#type = match r#type {
+    let typ = match typ {
         "int32" => Type::Int32,
         "int64" => Type::Int64,
         "float" => Type::Float,
@@ -232,29 +232,29 @@ fn parse_type(
         "string" => Type::String,
         "bytes" => Type::Bytes,
         "time" => Type::Time,
-        _ if r#type.starts_with('[') && r#type.ends_with(']') =>
+        _ if typ.starts_with('[') && typ.ends_with(']') =>
             Type::Vector(Box::new(parse_type(
                 line,
                 field,
-                &r#type[1..r#type.len() - 1],
+                &typ[1..typ.len() - 1],
                 type_definitions,
                 Some(OuterType::Vector),
             )?)),
-        _ if r#type.ends_with('?') =>
+        _ if typ.ends_with('?') =>
             Type::Option(Box::new(parse_type(
                 line,
                 field,
-                &r#type[..r#type.len() - 1],
+                &typ[..typ.len() - 1],
                 type_definitions,
                 Some(OuterType::Option),
             )?)),
-        _ if enum_defined(r#type, type_definitions) => Type::Defined(r#type.to_owned()),
-        _ => return Err(Error::InvalidType { line, field: field.to_owned(), r#type: r#type.to_owned() }),
+        _ if enum_defined(typ, type_definitions) => Type::Defined(typ.to_owned()),
+        _ => return Err(Error::InvalidType { line, field: field.to_owned(), typ: typ.to_owned() }),
     };
 
     if let Some(outer) = outer {
         if matches!(
-            (&outer, &r#type),
+            (&outer, &typ),
             (OuterType::Vector, Type::Option(_))
             | (OuterType::Option, Type::Bool)
             | (OuterType::Option, Type::Vector(_))
@@ -263,12 +263,12 @@ fn parse_type(
             return Err(Error::InvalidType {
                 line,
                 field: field.to_owned(),
-                r#type: format!("{outer:?}<{type:?}>"),
+                typ: format!("{outer:?}<{typ:?}>"),
             });
         }
     }
 
-    Ok(r#type)
+    Ok(typ)
 }
 
 fn type_defined(name: &str, definitions: &[TypeDefinition]) -> bool {
