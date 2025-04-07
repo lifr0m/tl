@@ -387,6 +387,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tl-example"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tl-generator",
+ "tl-parser",
+ "tl-types",
+]
+
+[[package]]
 name = "tl-generator"
 version = "0.1.0"
 dependencies = [
@@ -406,10 +416,7 @@ dependencies = [
 name = "tl-types"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "thiserror",
- "tl-generator",
- "tl-parser",
 ]
 
 [[package]]

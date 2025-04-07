@@ -101,7 +101,7 @@ impl<T: Deserialize> Deserialize for Option<T> {
     }
 }
 
-impl<T: Deserialize> Deserialize for Result<T, crate::Error> {
+impl<T: Deserialize, E: Deserialize> Deserialize for Result<T, E> {
     fn deserialize(reader: &mut Reader) -> Result<Self, Error> {
         if bool::deserialize(reader)? {
             match T::deserialize(reader) {
@@ -109,7 +109,7 @@ impl<T: Deserialize> Deserialize for Result<T, crate::Error> {
                 Err(error) => Err(error),
             }
         } else {
-            match crate::Error::deserialize(reader) {
+            match E::deserialize(reader) {
                 Ok(error) => Ok(Err(error)),
                 Err(error) => Err(error),
             }

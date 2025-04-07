@@ -3,88 +3,51 @@ use convert_case::{Case, Casing};
 use std::collections::HashMap;
 use tl_parser::*;
 
-pub(crate) trait Generate {
-    fn generate(&self, o: &mut Output);
-}
+pub(crate) fn generate_schema(
+    o: &mut Output,
+    schema: &Schema,
+) {
+    generate_enum(
+        o, "Error", false,
+        &schema.errors.iter()
+            .map(|def| &def.core)
+            .collect::<Vec<_>>(),
+    );
 
-impl Generate for Schema {
-    fn generate(&self, o: &mut Output) {
-        generate_enum(
-            o, "Error", false,
-            &self.errors.iter()
-                .map(|def| &def.core)
-                .collect::<Vec<_>>(),
-        );
+    o.write("\n");
 
-        o.write("\n");
+    generate_enum(
+        o, "Function", true,
+        &schema.functions.iter()
+            .map(|def| &def.core)
+            .collect::<Vec<_>>(),
+    );
 
-        generate_enum(
-            o, "Function", true,
-            &self.functions.iter()
-                .map(|def| &def.core)
-                .collect::<Vec<_>>(),
-        );
+    o.write("\n");
 
-        o.write("\n");
+    o.write_line(|o| o.write("pub mod types {"));
+    o.with_indent(|o| {
+        let mut enums = HashMap::new();
+        for def in &schema.types {
+            enums.entry(def.r#enum.clone()).or_insert_with(Vec::new).push(&def.core);
+        }
+        for (name, definitions) in enums {
+            generate_enum(o, &name, false, &definitions);
+            o.write("\n");
+        }
+    });
+    o.write_line(|o| o.write("}"));
 
-        o.write_line(|o| o.write("pub mod types {"));
-        o.with_indent(|o| {
-            let mut enums = HashMap::new();
-            for def in &self.types {
-                enums.entry(def.r#enum.clone()).or_insert_with(Vec::new).push(&def.core);
-            }
-            for (name, definitions) in enums {
-                generate_enum(o, &name, false, &definitions);
-                o.write("\n");
-            }
-        });
-        o.write_line(|o| o.write("}"));
+    o.write("\n");
 
-        o.write("\n");
-
-        o.write_line(|o| o.write("pub mod functions {"));
-        o.with_indent(|o| {
-            for def in &self.functions {
-                def.generate(o);
-                o.write("\n");
-            }
-        });
-        o.write_line(|o| o.write("}"));
-    }
-}
-
-impl Generate for FunctionDefinition {
-    fn generate(&self, o: &mut Output) {
-        generate_definition(o, &self.core, Some(&self.ret));
-    }
-}
-
-impl Generate for Type {
-    fn generate(&self, o: &mut Output) {
-        match self {
-            Self::Int32 => o.write("i32"),
-            Self::Int64 => o.write("i64"),
-            Self::Float => o.write("f64"),
-            Self::Bool => o.write("bool"),
-            Self::String => o.write("String"),
-            Self::Bytes => o.write("Vec::<u8>"),
-            Self::Time => o.write("std::time::SystemTime"),
-            Self::Vector(inner) => {
-                o.write("Vec::<");
-                inner.generate(o);
-                o.write(">");
-            }
-            Self::Option(inner) => {
-                o.write("Option::<");
-                inner.generate(o);
-                o.write(">");
-            }
-            Self::Defined(defined) => {
-                o.write("crate::types::");
-                o.write(defined);
-            }
-        };
-    }
+    o.write_line(|o| o.write("pub mod functions {"));
+    o.with_indent(|o| {
+        for def in &schema.functions {
+            generate_definition(o, &def.core, Some(&def.ret));
+            o.write("\n");
+        }
+    });
+    o.write_line(|o| o.write("}"));
 }
 
 fn get_definition_name(
@@ -106,6 +69,39 @@ fn generate_definition_id(
     o.write("_u32");
 }
 
+fn generate_type(
+    o: &mut Output,
+    typ: &Type,
+    in_mod: bool,
+) {
+    match typ {
+        Type::Int32 => o.write("i32"),
+        Type::Int64 => o.write("i64"),
+        Type::Float => o.write("f64"),
+        Type::Bool => o.write("bool"),
+        Type::String => o.write("String"),
+        Type::Bytes => o.write("Vec::<u8>"),
+        Type::Time => o.write("std::time::SystemTime"),
+        Type::Vector(typ) => {
+            o.write("Vec::<");
+            generate_type(o, typ, in_mod);
+            o.write(">");
+        }
+        Type::Option(typ) => {
+            o.write("Option::<");
+            generate_type(o, typ, in_mod);
+            o.write(">");
+        }
+        Type::Defined(name) => {
+            if in_mod {
+                o.write("super::");
+            }
+            o.write("types::");
+            o.write(name);
+        }
+    };
+}
+
 fn generate_enum(
     o: &mut Output,
     name: &str,
@@ -123,7 +119,7 @@ fn generate_enum(
             if is_function {
                 o.write_line(|o| {
                     o.write(&get_definition_name(def, is_function));
-                    o.write("(crate::functions::");
+                    o.write("(self::functions::");
                     o.write(&get_definition_name(def, is_function));
                     o.write("),");
                 });
@@ -137,7 +133,7 @@ fn generate_enum(
                         o.write_line(|o| {
                             o.write(&field.name);
                             o.write(": ");
-                            field.typ.generate(o);
+                            generate_type(o, &field.typ, false);
                             o.write(",");
                         });
                     }
@@ -216,7 +212,7 @@ fn generate_enum(
                             generate_definition_id(o, def);
                             o.write(" => Self::");
                             o.write(&get_definition_name(def, is_function));
-                            o.write("(crate::functions::");
+                            o.write("(self::functions::");
                             o.write(&get_definition_name(def, is_function));
                             o.write("::deserialize(reader)?),");
                         });
@@ -231,7 +227,7 @@ fn generate_enum(
                                     o.write("let ");
                                     o.write(&field.name);
                                     o.write("_ = ");
-                                    field.typ.generate(o);
+                                    generate_type(o, &field.typ, false);
                                     o.write("::deserialize(reader)?;");
                                 });
                             }
@@ -278,7 +274,7 @@ fn generate_definition(
                 o.write("pub ");
                 o.write(&field.name);
                 o.write(": ");
-                field.typ.generate(o);
+                generate_type(o, &field.typ, true);
                 o.write(",");
             });
         }
@@ -328,7 +324,7 @@ fn generate_definition(
                     o.write("let ");
                     o.write(&field.name);
                     o.write("_ = ");
-                    field.typ.generate(o);
+                    generate_type(o, &field.typ, true);
                     o.write("::deserialize(reader)?;");
                 });
             }
@@ -359,7 +355,7 @@ fn generate_definition(
         o.with_indent(|o| {
             o.write_line(|o| {
                 o.write("type Return = ");
-                ret.generate(o);
+                generate_type(o, ret, true);
                 o.write(";");
             });
         });

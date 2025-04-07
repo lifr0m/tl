@@ -101,7 +101,7 @@ impl<T: Serialize> Serialize for Option<T> {
     }
 }
 
-impl<T: Serialize> Serialize for Result<T, crate::Error> {
+impl<T: Serialize, E: Serialize> Serialize for Result<T, E> {
     fn serialize(&self, buf: &mut Vec<u8>) {
         match self {
             Ok(value) => {
@@ -111,7 +111,7 @@ impl<T: Serialize> Serialize for Result<T, crate::Error> {
             Err(error) => {
                 false.serialize(buf);
                 error.serialize(buf);
-            },
+            }
         };
     }
 }

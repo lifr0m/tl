@@ -1,11 +1,11 @@
 mod output;
 mod generate;
 
-use generate::Generate;
+use generate::generate_schema;
 use output::Output;
 
 pub fn generate(schema: &tl_parser::Schema) -> String {
     let mut output = Output::new(4, 0);
-    schema.generate(&mut output);
+    generate_schema(&mut output, schema);
     output.destruct()
 }

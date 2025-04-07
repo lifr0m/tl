@@ -75,8 +75,8 @@ impl crate::Deserialize for Error {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
-    GetUsers(crate::functions::GetUsers),
-    SendMessage(crate::functions::SendMessage),
+    GetUsers(self::functions::GetUsers),
+    SendMessage(self::functions::SendMessage),
 }
 
 impl crate::Deserialize for Function {
@@ -84,8 +84,8 @@ impl crate::Deserialize for Function {
         let id = u32::deserialize(reader)?;
 
         Ok(match id {
-            1904452899_u32 => Self::GetUsers(crate::functions::GetUsers::deserialize(reader)?),
-            339054040_u32 => Self::SendMessage(crate::functions::SendMessage::deserialize(reader)?),
+            1904452899_u32 => Self::GetUsers(self::functions::GetUsers::deserialize(reader)?),
+            339054040_u32 => Self::SendMessage(self::functions::SendMessage::deserialize(reader)?),
             _ => return Err(crate::deserialize::Error::UnexpectedDefinitionId(id)),
         })
     }
@@ -209,7 +209,7 @@ pub mod functions {
     }
 
     impl crate::Call for GetUsers {
-        type Return = Vec::<crate::types::User>;
+        type Return = Vec::<super::types::User>;
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -239,7 +239,7 @@ pub mod functions {
     }
 
     impl crate::Call for SendMessage {
-        type Return = crate::types::Message;
+        type Return = super::types::Message;
     }
 
 }
@@ -248,8 +248,9 @@ pub mod functions {
 
 ### How to use
 
-1. Clone project.
-2. Create `schema.tl` file at the root of `tl-types` crate.
-3. Specify `tl-types` crate in dependencies of your project.
-
-See `example.rs` in `tl-types/tests` folder.
+1. Clone template `tl-example` package.
+2. Create schemas in `schemas` folder.
+3. Create corresponding modules in `src/schemas` module.
+4. Specify schemas in `build.rs`.
+5. Remove `src/main.rs` / Edit `Cargo.toml` / Rename package.
+6. Specify crate in dependencies of your project.
