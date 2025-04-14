@@ -3,9 +3,9 @@
 mod serialize;
 pub mod deserialize;
 mod call;
-mod reader;
+mod read;
 
 pub use call::Call;
 pub use deserialize::Deserialize;
-pub use reader::Reader;
+use read::Read;
 pub use serialize::Serialize;

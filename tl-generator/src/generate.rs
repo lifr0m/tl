@@ -153,7 +153,7 @@ fn generate_enum(
             o.write(" {");
         });
         o.with_indent(|o| {
-            o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
+            o.write_line(|o| o.write("fn serialize(&self, dst: &mut Vec<u8>) {"));
             o.with_indent(|o| {
                 o.write_line(|o| o.write("match self {"));
                 o.with_indent(|o| {
@@ -173,12 +173,12 @@ fn generate_enum(
                         o.with_indent(|o| {
                             o.write_line(|o| {
                                 generate_definition_id(o, def);
-                                o.write(".serialize(buf);");
+                                o.write(".serialize(dst);");
                             });
                             for field in &def.fields {
                                 o.write_line(|o| {
                                     o.write(&field.name);
-                                    o.write("_.serialize(buf);");
+                                    o.write("_.serialize(dst);");
                                 });
                             }
                         });
@@ -200,9 +200,9 @@ fn generate_enum(
         o.write(" {");
     });
     o.with_indent(|o| {
-        o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
+        o.write_line(|o| o.write("fn deserialize(src: &mut &[u8]) -> Result<Self, crate::deserialize::Error> {"));
         o.with_indent(|o| {
-            o.write_line(|o| o.write("let id = u32::deserialize(reader)?;"));
+            o.write_line(|o| o.write("let id = u32::deserialize(src)?;"));
             o.write("\n");
             o.write_line(|o| o.write("Ok(match id {"));
             o.with_indent(|o| {
@@ -214,7 +214,7 @@ fn generate_enum(
                             o.write(&get_definition_name(def, is_function));
                             o.write("(self::functions::");
                             o.write(&get_definition_name(def, is_function));
-                            o.write("::deserialize(reader)?),");
+                            o.write("::deserialize(src)?),");
                         });
                     } else {
                         o.write_line(|o| {
@@ -228,7 +228,7 @@ fn generate_enum(
                                     o.write(&field.name);
                                     o.write("_ = ");
                                     generate_type(o, &field.typ, false);
-                                    o.write("::deserialize(reader)?;");
+                                    o.write("::deserialize(src)?;");
                                 });
                             }
                             o.write("\n");
@@ -289,19 +289,19 @@ fn generate_definition(
         o.write(" {");
     });
     o.with_indent(|o| {
-        o.write_line(|o| o.write("fn serialize(&self, buf: &mut Vec<u8>) {"));
+        o.write_line(|o| o.write("fn serialize(&self, dst: &mut Vec<u8>) {"));
         o.with_indent(|o| {
             if ret.is_some() {
                 o.write_line(|o| {
                     generate_definition_id(o, def);
-                    o.write(".serialize(buf);");
+                    o.write(".serialize(dst);");
                 });
             }
             for field in &def.fields {
                 o.write_line(|o| {
                     o.write("self.");
                     o.write(&field.name);
-                    o.write(".serialize(buf);");
+                    o.write(".serialize(dst);");
                 });
             }
         });
@@ -317,7 +317,7 @@ fn generate_definition(
         o.write(" {");
     });
     o.with_indent(|o| {
-        o.write_line(|o| o.write("fn deserialize(reader: &mut crate::Reader) -> Result<Self, crate::deserialize::Error> {"));
+        o.write_line(|o| o.write("fn deserialize(src: &mut &[u8]) -> Result<Self, crate::deserialize::Error> {"));
         o.with_indent(|o| {
             for field in &def.fields {
                 o.write_line(|o| {
@@ -325,7 +325,7 @@ fn generate_definition(
                     o.write(&field.name);
                     o.write("_ = ");
                     generate_type(o, &field.typ, true);
-                    o.write("::deserialize(reader)?;");
+                    o.write("::deserialize(src)?;");
                 });
             }
             o.write("\n");
