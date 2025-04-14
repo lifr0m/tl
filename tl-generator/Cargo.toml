@@ -8,4 +8,4 @@ repository = "https://github.com/lifr0m/tl"
 
 [dependencies]
 tl-parser = { path = "../tl-parser" }
-convert_case = "0"
+convert_case = "0.8"
